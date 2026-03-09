@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>100 Prisoners Riddle - Probability Paradoxes</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .room-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+      gap: 4px;
+      max-width: 800px;
+      margin: 1rem auto;
+      padding: 10px;
+      background: rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    .box {
+      aspect-ratio: 1;
+      background: linear-gradient(145deg, #3a3a4a, #2a2a3a);
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: var(--text-dim);
+      position: relative;
+      cursor: default;
+      user-select: none;
+      transition: all 0.2s;
+    }
+    .box .box-lid {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(145deg, #4a4a5a, #3a3a4a);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      color: #99a;
+      transition: transform 0.3s, opacity 0.3s;
+      backface-visibility: hidden;
+    }
+    
+    .box.open {
+      background: var(--bg-dark);
+      border-color: var(--accent-gold);
+      color: var(--accent-gold);
+    }
+    .box.open .box-lid {
+      transform: rotateY(180deg) scale(0.8);
+      opacity: 0;
+    }
+    
+    .box.success {
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+      box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+    }
+    
+    .simulation-panel {
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background: var(--border-dark);
+      border-radius: 5px;
+      margin: 1rem 0;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent-red);
+      width: 0%;
+      transition: width 0.1s;
+    }
+    
+    .current-prisoner {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+      color: var(--accent-gold);
+    }
+    .strategy-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .strategy-toggle label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">&larr; Back to Games</a>
+<h1>100 Prisoners Riddle</h1>
+<p class="subtitle">100 prisoners. 100 boxes. Each must find their own number by opening only 50 boxes. Can a pre-agreed strategy give them a real fighting chance?</p>
+
+<div class="quiz-panel" id="quizPanel">
+  <h2>Before you simulate — what do you think?</h2>
+  <p class="quiz-question">
+    100 prisoners are each numbered 1–100. Their numbers are written on slips of paper, placed randomly into 100 numbered boxes in a locked room. Each prisoner enters alone, opens at most 50 boxes, and must find their own number. They cannot communicate once the process starts, but may agree on a strategy beforehand. If even one prisoner fails, they all die. What is the best possible collective survival probability?
+  </p>
+  <div class="quiz-options">
+    <button class="quiz-btn" onclick="prisonQuiz('a')">A) Essentially 0% — the math is impossible to beat</button>
+    <button class="quiz-btn" onclick="prisonQuiz('b')">B) About 5% — a clever strategy helps a little</button>
+    <button class="quiz-btn" onclick="prisonQuiz('c')">C) About 30% — one strategy dramatically beats the odds</button>
+    <button class="quiz-btn" onclick="prisonQuiz('d')">D) About 50% — each prisoner has 50/50, so the group averages out</button>
+  </div>
+  <div class="quiz-feedback" id="quizFeedback">
+    <span id="quizFeedbackText"></span><br>
+    <button class="quiz-continue" onclick="document.getElementById('quizPanel').style.display='none'; document.getElementById('gameSection').style.display='block';">See the strategy in action &rarr;</button>
+  </div>
+</div>
+
+<div id="gameSection" style="display:none;">
+<div class="simulation-panel">
+  <div class="strategy-toggle">
+    <label><input type="radio" name="strategy" value="random" id="stratRandom"> Random Guessing</label>
+    <label><input type="radio" name="strategy" value="cycle" id="stratCycle" checked> Pointer Cycle Strategy</label>
+  </div>
+  
+  <div class="controls">
+    <button class="btn-primary" onclick="visualizeSingleRun()">Watch 1 Run</button>
+    <button class="btn-secondary" onclick="runBulkTrials(1000)">Run 1,000 Trials</button>
+  </div>
+  
+  <div class="status" id="status">Select a strategy and start!</div>
+  
+  <div class="progress-track" id="progressTrack"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="current-prisoner" id="currentPrisoner"></div>
+  
+  <div class="room-grid" id="roomGrid"></div>
+</div>
+
+<div class="scoreboard">
+  <div class="score-box">
+    <div class="label">Total Simulations</div>
+    <div class="value neutral" id="statTotal">0</div>
+  </div>
+  <div class="score-box">
+    <div class="label">Total Wins</div>
+    <div class="value win" id="statWins">0</div>
+  </div>
+  <div class="score-box">
+    <div class="label">Win Rate</div>
+    <div class="value" id="statRate" style="color:var(--accent-gold)">-</div>
+  </div>
+</div>
+
+<details class="explanation">
+  <summary>How does this work?</summary>
+  <p>The rules are brutal: 100 prisoners, 100 boxes containing slips of paper numbered 1-100 randomly. Each prisoner can open 50 boxes to find their own number. They cannot communicate after starting. If everyone finds their number, they live. If one fails, they all die.</p>
+  <p>With <strong>Random Guessing</strong>, each prisoner has a 1/2 chance. The chance of ALL 100 succeeding is (1/2)<sup>100</sup>, essentially zero.</p>
+  <p>The <strong>Pointer Strategy</strong>: Prisoner X opens box X. If it contains number Y, they next open box Y. They follow this chain until they find their number X. This leverages mathematical permutations.</p>
+  <p>Why does it work? Random shuffling creates permutation cycles. If the longest cycle is 50 or less, EVERY prisoner will find their number! The math shows there's a ~31.1% chance that a random permutation contains no cycle longer than 50. Thus, their survival rate jumps from zero to ~31%!</p>
+</details>
+</div><!-- end gameSection -->
+
+<script src="shared.js"></script>
+<script>
+  function prisonQuiz(answer) {
+    var btns = document.querySelectorAll('.quiz-btn');
+    btns.forEach(function(b) { b.disabled = true; });
+    var fb = document.getElementById('quizFeedback');
+    var ft = document.getElementById('quizFeedbackText');
+    if (answer === 'c') {
+      btns[2].classList.add('correct');
+      ft.textContent = '✓ Correct! With the right strategy, prisoners survive about 31% of the time — turning seemingly impossible odds into a realistic chance. The key is exploiting the mathematical structure of permutation cycles.';
+      fb.className = 'quiz-feedback correct';
+    } else if (answer === 'a') {
+      btns[0].classList.add('incorrect'); btns[2].classList.add('reveal');
+      ft.textContent = '✗ This is the intuitive answer, and for random searching it\'s essentially correct — (1/2)¹⁰⁰ ≈ 0%. But a specific pre-agreed strategy raises survival odds to ~31%. Run the simulation to see!';
+      fb.className = 'quiz-feedback incorrect';
+    } else if (answer === 'd') {
+      btns[3].classList.add('incorrect'); btns[2].classList.add('reveal');
+      ft.textContent = '✗ Each prisoner individually has 50% success, but that doesn\'t mean the group averages out — all 100 must succeed simultaneously. With random choices, the joint probability collapses to essentially zero.';
+      fb.className = 'quiz-feedback incorrect';
+    } else {
+      btns[1].classList.add('incorrect'); btns[2].classList.add('reveal');
+      ft.textContent = '✗ Better than zero, but the best strategy actually achieves ~31% — far higher than "slightly better." The improvement comes from a beautiful mathematical insight about permutation cycles.';
+      fb.className = 'quiz-feedback incorrect';
+    }
+    fb.style.display = 'block';
+  }
+
+  var N_PRISONERS = 100;
+  var N_GUESSES = 50;
+  var boxes = [];
+  var stats = { total: 0, wins: 0 };
+
+  function initBoxes() {
+    boxes = [];
+    for (var i = 1; i <= N_PRISONERS; i++) {
+      boxes.push(i);
+    }
+    shuffle(boxes);
+  }
+
+  function renderGrid() {
+    var grid = $('roomGrid');
+    grid.innerHTML = '';
+    for (var i = 0; i < N_PRISONERS; i++) {
+      var boxEl = el('div', 'box');
+      boxEl.id = 'box-' + i;
+      boxEl.textContent = boxes[i]; // The content
+      
+      var lid = el('div', 'box-lid', '' + (i + 1));
+      boxEl.appendChild(lid);
+      
+      grid.appendChild(boxEl);
+    }
+  }
+
+  function updateScoreboard() {
+    setText('statTotal', fmtNum(stats.total));
+    setText('statWins', fmtNum(stats.wins));
+    if (stats.total > 0) {
+      setText('statRate', pct(stats.wins / stats.total, 2));
+    } else {
+      setText('statRate', '-');
+    }
+  }
+
+  async function visualizeSingleRun() {
+    $('roomGrid').style.display = 'grid';
+    initBoxes();
+    renderGrid();
+    
+    var strat = $('stratCycle').checked ? 'cycle' : 'random';
+    var allSuccess = true;
+    
+    setText('status', 'Prisoners are entering the room...');
+    
+    for (var p = 1; p <= N_PRISONERS; p++) {
+      setText('currentPrisoner', 'Prisoner #' + p + ' searching...');
+      
+      // reset visuals for new prisoner
+      document.querySelectorAll('.box').forEach(b => {
+        b.classList.remove('open', 'success');
+      });
+      
+      var found = false;
+      var currentBoxIdx = p - 1; // 0-indexed
+      var opened = [];
+      
+      if (strat === 'random') {
+        var unvisited = [];
+        for (var j=0; j<N_PRISONERS; j++) unvisited.push(j);
+        shuffle(unvisited);
+        for (var guess=0; guess<N_GUESSES; guess++) {
+          opened.push(unvisited[guess]);
+        }
+      }
+      
+      for (var guess = 0; guess < N_GUESSES; guess++) {
+        var targetBoxIdx = strat === 'cycle' ? currentBoxIdx : opened[guess];
+        var boxEl = $('box-' + targetBoxIdx);
+        boxEl.classList.add('open');
+        
+        // brief pause for visual effect if P < 3 to avoid extreme slowness
+        if (p <= 3) {
+          await new Promise(r => setTimeout(r, 50));
+        }
+        
+        var val = boxes[targetBoxIdx];
+        if (val === p) {
+          found = true;
+          boxEl.classList.add('success');
+          if (p <= 3) await new Promise(r => setTimeout(r, 200));
+          break;
+        }
+        
+        if (strat === 'cycle') {
+          currentBoxIdx = val - 1; // Next box to open
+        }
+      }
+      
+      if (!found) {
+        allSuccess = false;
+        setText('status', 'Prisoner #' + p + ' FAILED! Everyone dies.');
+        break;
+      }
+    }
+    
+    if (allSuccess) {
+      setText('status', 'SUCCESS! All 100 prisoners found their numbers!');
+    }
+    
+    stats.total++;
+    if (allSuccess) stats.wins++;
+    updateScoreboard();
+    setText('currentPrisoner', '');
+  }
+
+  function simulateOneFull(strat) {
+    initBoxes();
+    for (var p = 1; p <= N_PRISONERS; p++) {
+      var found = false;
+      var currentBoxIdx = p - 1;
+      
+      if (strat === 'random') {
+        var unvisited = [];
+        for(var j=0; j<N_PRISONERS; j++) unvisited.push(j);
+        shuffle(unvisited);
+        for(var guess=0; guess<N_GUESSES; guess++) {
+          if (boxes[unvisited[guess]] === p) { found = true; break; }
+        }
+      } else {
+        for (var guess = 0; guess < N_GUESSES; guess++) {
+          var val = boxes[currentBoxIdx];
+          if (val === p) { found = true; break; }
+          currentBoxIdx = val - 1;
+        }
+      }
+      if (!found) return false;
+    }
+    return true;
+  }
+
+  function runBulkTrials(n) {
+    var strat = $('stratCycle').checked ? 'cycle' : 'random';
+    $('roomGrid').style.display = 'none';
+    setText('currentPrisoner', '');
+    
+    var track = $('progressTrack');
+    var fill = $('progressFill');
+    track.style.display = 'block';
+    setText('status', 'Running ' + n + ' simulations (' + strat + ' strategy)...');
+    
+    runSimulation(n, function() {
+      return simulateOneFull(strat);
+    }, function(done, res) {
+      fill.style.width = ((done / n) * 100) + '%';
+    }, function(res) {
+      var w = 0;
+      for(var i=0; i<res.length; i++) if(res[i]) w++;
+      stats.total += n;
+      stats.wins += w;
+      updateScoreboard();
+      track.style.display = 'none';
+      fill.style.width = '0%';
+      setText('status', 'Finished ' + n + ' trials. ' + w + ' wins.');
+    }, 100);
+  }
+  
+  initBoxes();
+  renderGrid();
+</script>
+</body>
+</html>

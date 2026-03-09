@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simpson's Paradox - Probability Paradoxes</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .guess-area {
+      background: var(--bg-card);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem auto;
+      max-width: 600px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .guess-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+    .guess-btn {
+      padding: 0.8rem 1.5rem;
+      border: 2px solid var(--border-mid);
+      border-radius: 8px;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex: 1 1 calc(50% - 1rem);
+      min-width: 140px;
+    }
+    .guess-btn:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent-gold);
+      box-shadow: 0 4px 12px rgba(245, 166, 35, 0.2);
+    }
+
+    .simulation-area {
+      display: none;
+    }
+
+    .result-text {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .table-wrapper {
+      width: 100%;
+      max-width: 700px;
+      overflow-x: auto;
+      margin: 0 auto 1.5rem;
+    }
+    .data-table {
+      width: 100%;
+    }
+    .data-table th.group-header {
+      font-size: 0.85rem;
+      color: var(--accent-gold);
+      letter-spacing: 0.5px;
+    }
+    .data-table td { vertical-align: middle; }
+    .data-table input[type="number"] {
+      width: 60px;
+      padding: 0.3rem 0.4rem;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      text-align: center;
+      -moz-appearance: textfield;
+    }
+    .data-table input[type="number"]::-webkit-outer-spin-button,
+    .data-table input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .data-table input[type="number"]:focus {
+      outline: none;
+      border-color: var(--accent-gold);
+      box-shadow: 0 0 6px rgba(245, 166, 35, 0.3);
+    }
+    .cell-rate {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-left: 0.4rem;
+    }
+    .cell-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      flex-wrap: nowrap;
+    }
+    .cell-sep {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+    .cell-eq {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+    .comparisons {
+      width: 100%;
+      max-width: 650px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .comparison-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.7rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      flex-wrap: wrap;
+    }
+    .comparison-row.overall {
+      border-color: var(--accent-gold);
+      border-width: 2px;
+    }
+    .comp-label {
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      min-width: 100px;
+      text-align: right;
+    }
+    .comp-vs {
+      color: var(--text-dim);
+      font-size: 0.8rem;
+    }
+    .comp-rate {
+      font-weight: 700;
+      font-size: 1rem;
+      min-width: 50px;
+      text-align: center;
+    }
+    .comp-winner {
+      font-weight: 800;
+      font-size: 0.85rem;
+      padding: 0.15rem 0.6rem;
+      border-radius: 4px;
+      margin-left: 0.3rem;
+    }
+    .comp-winner.highlight {
+      background: rgba(76, 175, 80, 0.15);
+      color: var(--accent-green);
+    }
+    .comp-winner.lowlight {
+      background: rgba(233, 69, 96, 0.15);
+      color: var(--accent-red);
+    }
+    .paradox-alert {
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent-gold);
+      margin-bottom: 1rem;
+      min-height: 1.5rem;
+    }
+    .label-input {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--accent-gold);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-align: center;
+      padding: 0.2rem 0.3rem;
+      border-radius: 4px;
+      width: 110px;
+    }
+    .label-input:hover {
+      border-color: var(--border-mid);
+    }
+    .label-input:focus {
+      outline: none;
+      border-color: var(--accent-gold);
+      background: var(--bg-dark);
+    }
+    .label-input.treatment-label {
+      color: var(--text-secondary);
+      width: 100px;
+    }
+    @media (max-width: 500px) {
+      .data-table input[type="number"] { width: 48px; font-size: 0.8rem; }
+      .cell-rate { font-size: 0.8rem; }
+      .comp-label { min-width: 70px; font-size: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">&larr; Back to Games</a>
+<h1>Simpson's Paradox</h1>
+<p class="subtitle">Which treatment is better?</p>
+
+<div class="guess-area" id="guessArea">
+  <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 1rem; text-align: left;">
+    A hospital is testing two different kidney stone treatments. They classify patients into two groups: those with <strong>Small Stones</strong> (mild) and <strong>Large Stones</strong> (severe). Here are the results:
+  </p>
+  
+  <div style="background: var(--bg-dark); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: left; font-size: 0.95rem;">
+    <h3 style="color: var(--accent-gold); margin-bottom: 0.5rem; font-size: 1rem;">Small Stones</h3>
+    <ul style="margin-bottom: 1rem; margin-left: 1.5rem; line-height: 1.4;">
+      <li><strong>Treatment A:</strong> 93% success rate (81 / 87 patients)</li>
+      <li><strong>Treatment B:</strong> 87% success rate (234 / 270 patients)</li>
+    </ul>
+    
+    <h3 style="color: var(--accent-gold); margin-bottom: 0.5rem; font-size: 1rem;">Large Stones</h3>
+    <ul style="margin-left: 1.5rem; line-height: 1.4;">
+      <li><strong>Treatment A:</strong> 73% success rate (192 / 263 patients)</li>
+      <li><strong>Treatment B:</strong> 69% success rate (55 / 80 patients)</li>
+    </ul>
+  </div>
+
+  <p style="font-size: 1.1rem; line-height: 1.6;">
+    Treatment A is better for Small Stones. It is ALSO better for Large Stones.<br><br>
+    If we combine all the patients together into one overall group, which treatment do you think has the higher <em>overall</em> success rate?
+  </p>
+  
+  <div class="guess-buttons">
+    <button class="guess-btn" onclick="makeGuess('A')">Treatment A</button>
+    <button class="guess-btn" onclick="makeGuess('B')">Treatment B</button>
+  </div>
+</div>
+
+<div class="status" id="status" style="display: none;"></div>
+
+<div class="simulation-area" id="simulationArea">
+  <div class="result-text" id="resultText"></div>
+
+  <div class="controls">
+    <button class="btn-primary" onclick="loadClassic()">Classic Example</button>
+    <button class="btn-secondary" onclick="randomize()">Randomize</button>
+    <button class="btn-secondary btn-small" onclick="resetData()">Reset</button>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="data-table" id="dataTable">
+      <thead>
+        <tr>
+          <th></th>
+          <th><input class="label-input treatment-label" id="labelT1" value="Treatment A" oninput="onLabelChange()"></th>
+          <th><input class="label-input treatment-label" id="labelT2" value="Treatment B" oninput="onLabelChange()"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th class="group-header"><input class="label-input" id="labelG1" value="Small Stones" oninput="onLabelChange()"></th>
+          <td>
+            <div class="cell-content">
+              <input type="number" id="g1t1s" min="0" value="81" oninput="onDataChange()">
+              <span class="cell-sep">/</span>
+              <input type="number" id="g1t1n" min="1" value="87" oninput="onDataChange()">
+              <span class="cell-eq">=</span>
+              <span class="cell-rate" id="g1t1r">93%</span>
+            </div>
+          </td>
+          <td>
+            <div class="cell-content">
+              <input type="number" id="g1t2s" min="0" value="234" oninput="onDataChange()">
+              <span class="cell-sep">/</span>
+              <input type="number" id="g1t2n" min="1" value="270" oninput="onDataChange()">
+              <span class="cell-eq">=</span>
+              <span class="cell-rate" id="g1t2r">87%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <th class="group-header"><input class="label-input" id="labelG2" value="Large Stones" oninput="onLabelChange()"></th>
+          <td>
+            <div class="cell-content">
+              <input type="number" id="g2t1s" min="0" value="192" oninput="onDataChange()">
+              <span class="cell-sep">/</span>
+              <input type="number" id="g2t1n" min="1" value="263" oninput="onDataChange()">
+              <span class="cell-eq">=</span>
+              <span class="cell-rate" id="g2t1r">73%</span>
+            </div>
+          </td>
+          <td>
+            <div class="cell-content">
+              <input type="number" id="g2t2s" min="0" value="55" oninput="onDataChange()">
+              <span class="cell-sep">/</span>
+              <input type="number" id="g2t2n" min="1" value="80" oninput="onDataChange()">
+              <span class="cell-eq">=</span>
+              <span class="cell-rate" id="g2t2r">69%</span>
+            </div>
+          </td>
+        </tr>
+        <tr style="border-top: 2px solid var(--border-mid);">
+          <th class="group-header" style="color: var(--text-secondary);">Overall</th>
+          <td>
+            <div class="cell-content">
+              <span id="ot1s" style="color:var(--text-muted);">273</span>
+              <span class="cell-sep">/</span>
+              <span id="ot1n" style="color:var(--text-muted);">350</span>
+              <span class="cell-eq">=</span>
+              <span class="cell-rate" id="ot1r">78%</span>
+            </div>
+          </td>
+          <td>
+            <div class="cell-content">
+              <span id="ot2s" style="color:var(--text-muted);">289</span>
+              <span class="cell-sep">/</span>
+              <span id="ot2n" style="color:var(--text-muted);">350</span>
+              <span class="cell-eq">=</span>
+              <span class="cell-rate" id="ot2r">83%</span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="comparisons" id="comparisons">
+    <div class="comparison-row" id="compG1"></div>
+    <div class="comparison-row" id="compG2"></div>
+    <div class="comparison-row overall" id="compOverall"></div>
+  </div>
+
+  <div class="paradox-alert" id="paradoxAlert"></div>
+
+  <div class="scoreboard">
+    <div class="score-box"><div class="label">Group 1 Winner</div><div class="value" id="sbG1">-</div></div>
+    <div class="score-box"><div class="label">Group 2 Winner</div><div class="value" id="sbG2">-</div></div>
+    <div class="score-box"><div class="label">Overall Winner</div><div class="value" id="sbOverall">-</div></div>
+  </div>
+
+  <details class="explanation" style="margin-top: 1.5rem;">
+    <summary>How does this work?</summary>
+    <p><strong>Simpson's Paradox</strong> occurs when a trend appearing in separate groups reverses when the groups are combined. This happens because of a <strong>lurking variable</strong> &mdash; the group sizes are severely unbalanced between treatments.</p>
+    <p>In this classic kidney stone data, Treatment A is used much more often on <strong>large stones</strong> (the harder cases with low success rates). Treatment B is used mostly on <strong>small stones</strong> (easy cases with high success rates).</p>
+    <p>Treatment A is objectively the better treatment for both types of stones. But because Treatment A takes on almost all the difficult cases, its <em>overall</em> success rate gets dragged down. Treatment B gets to coast on lots of easy cases, artificially inflating its overall score.</p>
+    <p>The paradox warns us that <strong>aggregated data can be highly misleading</strong>. Always consider whether a confounding variable might be hiding the true relationship.</p>
+  </details>
+</div>
+
+<script src="shared.js"></script>
+<script>
+  function makeGuess(guess) {
+    $('guessArea').style.display = 'none';
+    $('status').style.display = 'block';
+    $('simulationArea').style.display = 'block';
+
+    var resultTextEl = $('resultText');
+    if (guess === true) {
+      resultTextEl.innerHTML = '<span class="win">Correct!</span> It defies intuition, but it is entirely possible.';
+    } else {
+      resultTextEl.innerHTML = '<span class="lose">Incorrect!</span> It completely defies logic, but it is actually mathematically possible.';
+    }
+    
+    setText('status', 'Simpson\'s Paradox detected! Edit the values or try randomizing.');
+    
+    loadClassic(); // Load the data and render
+  }
+
+  var state = {
+    data: {
+      g1: { t1: { s: 81, n: 87 }, t2: { s: 234, n: 270 } },
+      g2: { t1: { s: 192, n: 263 }, t2: { s: 55, n: 80 } }
+    },
+    labels: { g1: 'Small Stones', g2: 'Large Stones', t1: 'Treatment A', t2: 'Treatment B' }
+  };
+
+  function rate(s, n) {
+    if (n === 0) return 0;
+    return s / n;
+  }
+
+  function ratePct(s, n) {
+    if (n === 0) return '0%';
+    return (s / n * 100).toFixed(1) + '%';
+  }
+
+  function readInputs() {
+    state.data.g1.t1.s = Math.max(0, parseInt($('g1t1s').value) || 0);
+    state.data.g1.t1.n = Math.max(1, parseInt($('g1t1n').value) || 1);
+    state.data.g1.t2.s = Math.max(0, parseInt($('g1t2s').value) || 0);
+    state.data.g1.t2.n = Math.max(1, parseInt($('g1t2n').value) || 1);
+    state.data.g2.t1.s = Math.max(0, parseInt($('g2t1s').value) || 0);
+    state.data.g2.t1.n = Math.max(1, parseInt($('g2t1n').value) || 1);
+    state.data.g2.t2.s = Math.max(0, parseInt($('g2t2s').value) || 0);
+    state.data.g2.t2.n = Math.max(1, parseInt($('g2t2n').value) || 1);
+
+    // Clamp successes to not exceed total
+    state.data.g1.t1.s = Math.min(state.data.g1.t1.s, state.data.g1.t1.n);
+    state.data.g1.t2.s = Math.min(state.data.g1.t2.s, state.data.g1.t2.n);
+    state.data.g2.t1.s = Math.min(state.data.g2.t1.s, state.data.g2.t1.n);
+    state.data.g2.t2.s = Math.min(state.data.g2.t2.s, state.data.g2.t2.n);
+  }
+
+  function setInputs() {
+    $('g1t1s').value = state.data.g1.t1.s;
+    $('g1t1n').value = state.data.g1.t1.n;
+    $('g1t2s').value = state.data.g1.t2.s;
+    $('g1t2n').value = state.data.g1.t2.n;
+    $('g2t1s').value = state.data.g2.t1.s;
+    $('g2t1n').value = state.data.g2.t1.n;
+    $('g2t2s').value = state.data.g2.t2.s;
+    $('g2t2n').value = state.data.g2.t2.n;
+
+    $('labelG1').value = state.labels.g1;
+    $('labelG2').value = state.labels.g2;
+    $('labelT1').value = state.labels.t1;
+    $('labelT2').value = state.labels.t2;
+  }
+
+  function updateDisplay() {
+    var d = state.data;
+    var lb = state.labels;
+
+    // Group rates
+    var g1t1r = rate(d.g1.t1.s, d.g1.t1.n);
+    var g1t2r = rate(d.g1.t2.s, d.g1.t2.n);
+    var g2t1r = rate(d.g2.t1.s, d.g2.t1.n);
+    var g2t2r = rate(d.g2.t2.s, d.g2.t2.n);
+
+    // Overall
+    var ot1s = d.g1.t1.s + d.g2.t1.s;
+    var ot1n = d.g1.t1.n + d.g2.t1.n;
+    var ot2s = d.g1.t2.s + d.g2.t2.s;
+    var ot2n = d.g1.t2.n + d.g2.t2.n;
+    var ot1r = rate(ot1s, ot1n);
+    var ot2r = rate(ot2s, ot2n);
+
+    // Update rate displays
+    setText('g1t1r', ratePct(d.g1.t1.s, d.g1.t1.n));
+    setText('g1t2r', ratePct(d.g1.t2.s, d.g1.t2.n));
+    setText('g2t1r', ratePct(d.g2.t1.s, d.g2.t1.n));
+    setText('g2t2r', ratePct(d.g2.t2.s, d.g2.t2.n));
+
+    // Color the rates based on which wins per row
+    applyWinColor('g1t1r', 'g1t2r', g1t1r, g1t2r);
+    applyWinColor('g2t1r', 'g2t2r', g2t1r, g2t2r);
+
+    // Overall row
+    setText('ot1s', ot1s);
+    setText('ot1n', ot1n);
+    setText('ot2s', ot2s);
+    setText('ot2n', ot2n);
+    setText('ot1r', ratePct(ot1s, ot1n));
+    setText('ot2r', ratePct(ot2s, ot2n));
+    applyWinColor('ot1r', 'ot2r', ot1r, ot2r);
+
+    // Comparison rows
+    renderComparison('compG1', lb.g1, lb.t1, g1t1r, lb.t2, g1t2r);
+    renderComparison('compG2', lb.g2, lb.t1, g2t1r, lb.t2, g2t2r);
+    renderComparison('compOverall', 'Overall', lb.t1, ot1r, lb.t2, ot2r);
+
+    // Scoreboard
+    updateScoreBox('sbG1', g1t1r, g1t2r, lb.t1, lb.t2);
+    updateScoreBox('sbG2', g2t1r, g2t2r, lb.t1, lb.t2);
+    updateScoreBox('sbOverall', ot1r, ot2r, lb.t1, lb.t2);
+
+    // Paradox detection
+    var isParadox = false;
+    // Check: t1 wins both subgroups but loses overall (or vice versa)
+    if (g1t1r > g1t2r && g2t1r > g2t2r && ot1r < ot2r) {
+      isParadox = true;
+      setText('paradoxAlert', 'PARADOX! ' + lb.t1 + ' wins both subgroups but ' + lb.t2 + ' wins overall!');
+    } else if (g1t1r < g1t2r && g2t1r < g2t2r && ot1r > ot2r) {
+      isParadox = true;
+      setText('paradoxAlert', 'PARADOX! ' + lb.t2 + ' wins both subgroups but ' + lb.t1 + ' wins overall!');
+    } else {
+      setText('paradoxAlert', 'No paradox with these values. Try "Classic Example" or "Randomize".');
+    }
+
+    if (isParadox) {
+      setText('status', 'Simpson\'s Paradox detected!');
+    } else {
+      setText('status', 'Edit the values to create a paradox, or use the buttons above.');
+    }
+  }
+
+  function applyWinColor(id1, id2, r1, r2) {
+    var el1 = $(id1), el2 = $(id2);
+    el1.className = 'cell-rate';
+    el2.className = 'cell-rate';
+    if (r1 > r2) {
+      el1.classList.add('highlight');
+      el2.classList.add('lowlight');
+    } else if (r2 > r1) {
+      el2.classList.add('highlight');
+      el1.classList.add('lowlight');
+    }
+  }
+
+  function renderComparison(containerId, groupLabel, t1Label, t1Rate, t2Label, t2Rate) {
+    var row = $(containerId);
+    row.innerHTML = '';
+
+    var lbl = el('span', 'comp-label', groupLabel + ':');
+    row.appendChild(lbl);
+
+    var r1span = el('span', 'comp-rate', (t1Rate * 100).toFixed(1) + '%');
+    r1span.style.color = t1Rate > t2Rate ? 'var(--accent-green)' : (t1Rate < t2Rate ? 'var(--accent-red)' : 'var(--text-muted)');
+    var t1lbl = el('span', '', t1Label + ' ');
+    t1lbl.style.color = 'var(--text-muted)';
+    t1lbl.style.fontSize = '0.8rem';
+    row.appendChild(t1lbl);
+    row.appendChild(r1span);
+
+    row.appendChild(el('span', 'comp-vs', 'vs'));
+
+    var r2span = el('span', 'comp-rate', (t2Rate * 100).toFixed(1) + '%');
+    r2span.style.color = t2Rate > t1Rate ? 'var(--accent-green)' : (t2Rate < t1Rate ? 'var(--accent-red)' : 'var(--text-muted)');
+    var t2lbl = el('span', '', t2Label + ' ');
+    t2lbl.style.color = 'var(--text-muted)';
+    t2lbl.style.fontSize = '0.8rem';
+    row.appendChild(t2lbl);
+    row.appendChild(r2span);
+
+    // Winner badge
+    var badge = el('span', 'comp-winner');
+    if (t1Rate > t2Rate) {
+      badge.textContent = t1Label + ' wins';
+      badge.classList.add('highlight');
+    } else if (t2Rate > t1Rate) {
+      badge.textContent = t2Label + ' wins';
+      badge.classList.add(containerId === 'compOverall' ? 'lowlight' : 'highlight');
+      // For the paradox: if subgroup says one thing but overall says another, mark overall differently
+    } else {
+      badge.textContent = 'Tied';
+      badge.style.color = 'var(--text-dim)';
+    }
+    row.appendChild(badge);
+  }
+
+  function updateScoreBox(id, r1, r2, lbl1, lbl2) {
+    var box = $(id);
+    if (r1 > r2) {
+      box.textContent = lbl1;
+      box.className = 'value win';
+    } else if (r2 > r1) {
+      box.textContent = lbl2;
+      box.className = 'value lose';
+    } else {
+      box.textContent = 'Tied';
+      box.className = 'value neutral';
+    }
+  }
+
+  function onDataChange() {
+    readInputs();
+    updateDisplay();
+  }
+
+  function onLabelChange() {
+    state.labels.g1 = $('labelG1').value || 'Group 1';
+    state.labels.g2 = $('labelG2').value || 'Group 2';
+    state.labels.t1 = $('labelT1').value || 'Treatment A';
+    state.labels.t2 = $('labelT2').value || 'Treatment B';
+    updateDisplay();
+  }
+
+  function loadClassic() {
+    state.data = {
+      g1: { t1: { s: 81, n: 87 }, t2: { s: 234, n: 270 } },
+      g2: { t1: { s: 192, n: 263 }, t2: { s: 55, n: 80 } }
+    };
+    state.labels = { g1: 'Small Stones', g2: 'Large Stones', t1: 'Treatment A', t2: 'Treatment B' };
+    setInputs();
+    updateDisplay();
+  }
+
+  function resetData() {
+    state.data = {
+      g1: { t1: { s: 50, n: 100 }, t2: { s: 50, n: 100 } },
+      g2: { t1: { s: 50, n: 100 }, t2: { s: 50, n: 100 } }
+    };
+    state.labels = { g1: 'Group 1', g2: 'Group 2', t1: 'Treatment A', t2: 'Treatment B' };
+    setInputs();
+    updateDisplay();
+  }
+
+  function randomize() {
+    // Generate a valid Simpson's Paradox dataset
+    // Strategy: Treatment A has higher rate in both subgroups,
+    // but Treatment B is concentrated in the "easy" group (high base rate)
+    var maxAttempts = 5000;
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      // Easy group has higher base rates, hard group lower
+      var easyBase = randInt(70, 95) / 100; // high success rate group
+      var hardBase = randInt(30, 70) / 100; // lower success rate group
+
+      // Treatment A: slightly better in both groups
+      var aBoostEasy = randInt(2, 12) / 100;
+      var aBoostHard = randInt(2, 15) / 100;
+
+      var g1_rA = Math.min(easyBase + aBoostEasy, 0.99);
+      var g1_rB = easyBase;
+      var g2_rA = Math.min(hardBase + aBoostHard, 0.98);
+      var g2_rB = hardBase;
+
+      // Key: Treatment B gets many more cases in the easy group
+      // Treatment A gets many more cases in the hard group
+      var g1_nA = randInt(20, 80);     // A: few easy cases
+      var g1_nB = randInt(150, 400);   // B: lots of easy cases
+      var g2_nA = randInt(150, 400);   // A: lots of hard cases
+      var g2_nB = randInt(20, 80);     // B: few hard cases
+
+      var g1_sA = Math.round(g1_rA * g1_nA);
+      var g1_sB = Math.round(g1_rB * g1_nB);
+      var g2_sA = Math.round(g2_rA * g2_nA);
+      var g2_sB = Math.round(g2_rB * g2_nB);
+
+      // Clamp
+      g1_sA = Math.min(g1_sA, g1_nA);
+      g1_sB = Math.min(g1_sB, g1_nB);
+      g2_sA = Math.min(g2_sA, g2_nA);
+      g2_sB = Math.min(g2_sB, g2_nB);
+
+      // Check actual rates
+      var r_g1A = g1_sA / g1_nA;
+      var r_g1B = g1_sB / g1_nB;
+      var r_g2A = g2_sA / g2_nA;
+      var r_g2B = g2_sB / g2_nB;
+
+      // Overall
+      var oA = (g1_sA + g2_sA) / (g1_nA + g2_nA);
+      var oB = (g1_sB + g2_sB) / (g1_nB + g2_nB);
+
+      // Check for paradox: A wins both subgroups but B wins overall
+      if (r_g1A > r_g1B && r_g2A > r_g2B && oB > oA) {
+        // Additional check: differences should be meaningful (> 1%)
+        if ((r_g1A - r_g1B) > 0.01 && (r_g2A - r_g2B) > 0.01 && (oB - oA) > 0.01) {
+          var groupNames = [
+            ['Beginners', 'Experts'],
+            ['Young Patients', 'Senior Patients'],
+            ['Small Projects', 'Large Projects'],
+            ['Online Sales', 'In-Store Sales'],
+            ['Morning Shift', 'Night Shift'],
+            ['Rural Area', 'Urban Area'],
+            ['Easy Cases', 'Hard Cases'],
+            ['Division A', 'Division B']
+          ];
+          var treatNames = [
+            ['Method A', 'Method B'],
+            ['Drug A', 'Drug B'],
+            ['Strategy X', 'Strategy Y'],
+            ['Program 1', 'Program 2'],
+            ['Treatment A', 'Treatment B'],
+            ['Approach Alpha', 'Approach Beta']
+          ];
+          var gn = groupNames[randInt(0, groupNames.length - 1)];
+          var tn = treatNames[randInt(0, treatNames.length - 1)];
+
+          state.data = {
+            g1: { t1: { s: g1_sA, n: g1_nA }, t2: { s: g1_sB, n: g1_nB } },
+            g2: { t1: { s: g2_sA, n: g2_nA }, t2: { s: g2_sB, n: g2_nB } }
+          };
+          state.labels = { g1: gn[0], g2: gn[1], t1: tn[0], t2: tn[1] };
+          setInputs();
+          updateDisplay();
+          return;
+        }
+      }
+    }
+    // Fallback: load classic
+    loadClassic();
+  }
+</script>
+</body>
+</html>

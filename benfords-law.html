@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Benford's Law - Probability Paradoxes</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .guess-area {
+      background: var(--bg-card);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem auto;
+      max-width: 600px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .guess-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+    .guess-btn {
+      padding: 0.8rem 1.5rem;
+      border: 2px solid var(--border-mid);
+      border-radius: 8px;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex: 1 1 calc(50% - 1rem);
+      min-width: 140px;
+    }
+    .guess-btn:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent-gold);
+      box-shadow: 0 4px 12px rgba(245, 166, 35, 0.2);
+    }
+    .chart-area {
+      width: 100%;
+      max-width: 650px;
+      margin: 2rem auto;
+      display: none;
+    }
+    .chart-area .bar-chart {
+      height: 250px;
+    }
+    .result-text {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+    }
+    .dataset-controls {
+      margin-top: 2rem;
+      text-align: center;
+      display: none;
+      background: var(--bg-subtle);
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-mid);
+    }
+    .table-area {
+      width: 100%;
+      max-width: 550px;
+      margin: 1.5rem auto;
+      overflow-x: auto;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">&larr; Back to Games</a>
+<h1>Benford's Law</h1>
+<p class="subtitle">The Counter-Intuitive Distribution of First Digits</p>
+
+<div class="guess-area" id="guessArea">
+  <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 1rem;">
+    Imagine you are a forensic accountant auditing a large company. You collect thousands of random expense reports and look at only the <strong>very first digit</strong> of each expense amount (e.g., $<strong>4</strong>50.00 -> 4, $<strong>1</strong>,250.00 -> 1).
+  </p>
+  <p style="font-size: 1.1rem; line-height: 1.6;">
+    If the data is completely natural and not fabricated by a fraudster, what percentage of these expenses do you think will start with the digit <strong>1</strong>?
+  </p>
+  
+  <div class="guess-buttons">
+    <button class="guess-btn" onclick="makeGuess(11.1)">~11.1%</button>
+    <button class="guess-btn" onclick="makeGuess(15.5)">~15.5%</button>
+    <button class="guess-btn" onclick="makeGuess(30.1)">~30.1%</button>
+    <button class="guess-btn" onclick="makeGuess(45.0)">~45.0%</button>
+  </div>
+</div>
+
+<div class="status" id="status" style="display: none;"></div>
+
+<div class="chart-area" id="chartArea">
+  <div class="result-text" id="resultText" style="text-align: center;"></div>
+  <p style="text-align: center; color: var(--text-dim); margin-bottom: 1rem;">
+    Most people assume the leading digits (1-9) are uniformly distributed (~11.1% each). However, in many naturally occurring datasets, the number 1 appears as the first digit about 30.1% of the time!
+  </p>
+
+  <div class="legend" style="margin-bottom:0.5rem; justify-content: center;">
+    <span class="legend-item"><span class="legend-dot" style="background:var(--accent-gold)"></span> Benford's Expected %</span>
+    <span class="legend-item"><span class="legend-dot" style="background:var(--accent-red)"></span> Simulated Data %</span>
+  </div>
+  <div class="bar-chart" id="benfordChart"></div>
+</div>
+
+<div class="dataset-controls" id="datasetControls">
+  <h3 style="margin-bottom: 0.5rem;">See it in action!</h3>
+  <p style="margin-bottom: 1rem; color: var(--text-dim); font-size: 0.9rem;">Generate simulated datasets to see how closely they follow Benford's distribution.</p>
+  <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+    <button class="btn-secondary btn-small" onclick="simulateData('city')">City Populations</button>
+    <button class="btn-secondary btn-small" onclick="simulateData('fib')">Fibonacci Sequence</button>
+    <button class="btn-secondary btn-small" onclick="simulateData('pow2')">Powers of 2</button>
+    <button class="btn-secondary btn-small" onclick="simulateData('uniform')">Random (Uniform)</button>
+  </div>
+  <div id="simStatus" style="margin-top: 1rem; font-weight: bold; color: var(--accent-gold);"></div>
+</div>
+
+<div class="table-area" id="tableArea"></div>
+
+<details class="explanation" id="explanation" style="display: none;">
+  <summary>Why does this happen?</summary>
+  <p><strong>Benford's Law</strong> (also known as the First-Digit Law) applies to datasets that span multiple orders of magnitude. Think about a city's population growing: to go from a population starting with 1 (like 10,000) to a population starting with 2 (20,000), it has to grow by 100%.</p>
+  <p>But to go from a population starting with 9 (90,000) to the next order of magnitude starting with 1 (100,000), it only has to grow by about 11%. Therefore, numbers naturally "spend more time" starting with lower digits before rolling over to the next magnitude.</p>
+  <p>The expected frequency of digit <em>d</em> (1-9) as the leading digit is given by the formula: <strong>log<sub>10</sub>(1 + 1/<em>d</em>)</strong>.</p>
+  <p>This law is actually used in the real world by forensic accountants and the IRS to detect tax fraud, fabricated data, and election anomalies. When humans try to "make up" random numbers, they usually distribute the first digits evenly, which violates Benford's Law and flags the data as suspicious!</p>
+</details>
+
+<script src="shared.js"></script>
+<script>
+  var BENFORD = [30.1, 17.6, 12.5, 9.7, 7.9, 6.7, 5.8, 5.1, 4.6];
+  var gameStats = loadState('benfordTriviaStats', { attempts: 0, correctFirstTry: false });
+
+  function renderInitialChart() {
+    var chartData = [];
+    for (var i = 0; i < 9; i++) {
+      chartData.push({
+        label: '' + (i + 1),
+        expected: BENFORD[i],
+        value: 0, // No simulated data yet
+        valueLabel: BENFORD[i].toFixed(1) + '%'
+      });
+    }
+    renderBarChart('benfordChart', chartData, { showExpected: true, maxValue: 35 });
+  }
+
+  function makeGuess(guess) {
+    $('guessArea').style.display = 'none';
+    $('status').style.display = 'block';
+    $('chartArea').style.display = 'block';
+    $('datasetControls').style.display = 'block';
+    $('explanation').style.display = 'block';
+
+    var isCorrect = (guess === 30.1);
+    
+    var resultTextEl = $('resultText');
+    if (isCorrect) {
+      resultTextEl.innerHTML = '<span class="win">Correct!</span> It\'s about 30.1%.';
+    } else {
+      if (guess === 11.1) {
+        resultTextEl.innerHTML = '<span class="lose">Not quite!</span> It is completely understandable to think it\'s 11.1% (a uniform 1-in-9 chance), but it is actually <strong>30.1%</strong>.';
+      } else if (guess === 45.0) {
+        resultTextEl.innerHTML = '<span class="lose">Not quite!</span> That\'s a bit too high! While "1" is the most common, it accounts for about <strong>30.1%</strong>.';
+      } else {
+        resultTextEl.innerHTML = '<span class="lose">Incorrect!</span> The correct answer is actually <strong>30.1%</strong>.';
+      }
+    }
+
+    $('status').innerHTML = 'You guessed ' + guess + '%. The mathematical truth is <strong>30.1%</strong>.';
+    renderInitialChart();
+    renderTable(null);
+  }
+
+  function randn() {
+    return Math.sqrt(-2 * Math.log(Math.random())) * Math.cos(2 * Math.PI * Math.random());
+  }
+
+  function generateDataset(key) {
+    switch (key) {
+      case 'city': return generateLogNormal(1000, 8, 3, 'Simulated City Populations (n=1000)');
+      case 'fib': return generateFibonacci();
+      case 'pow2': return generatePowersOf2();
+      case 'uniform': return generateUniform();
+      default: return { numbers: [], description: '' };
+    }
+  }
+
+  function generateLogNormal(count, mu, sigma, desc) {
+    var nums = [];
+    for (var i = 0; i < count; i++) {
+      var val = Math.round(Math.exp(mu + randn() * sigma));
+      if (val > 0) nums.push(val);
+    }
+    return { numbers: nums, description: desc };
+  }
+
+  function generateFibonacci() {
+    var nums = [];
+    var a = BigInt(1), b = BigInt(1);
+    for (var i = 0; i < 500; i++) {
+      nums.push(a);
+      var temp = a + b;
+      a = b;
+      b = temp;
+    }
+    return { numbers: nums, description: 'First 500 Fibonacci Numbers' };
+  }
+
+  function generatePowersOf2() {
+    var nums = [];
+    var val = BigInt(1);
+    for (var i = 1; i <= 1000; i++) {
+      val = val * BigInt(2);
+      nums.push(val);
+    }
+    return { numbers: nums, description: 'Powers of 2 (2^1 to 2^1000)' };
+  }
+
+  function generateUniform() {
+    var nums = [];
+    for (var i = 0; i < 1000; i++) {
+      nums.push(randInt(1, 999999));
+    }
+    return { numbers: nums, description: 'Random Uniform Numbers (Should FAIL Benford\'s Law)' };
+  }
+
+  function leadingDigit(n) {
+    var s = String(n);
+    for (var i = 0; i < s.length; i++) {
+      var c = s[i];
+      if (c >= '1' && c <= '9') return parseInt(c, 10);
+    }
+    return 0;
+  }
+
+  function computeDistribution(numbers) {
+    var counts = new Array(9).fill(0);
+    var valid = 0;
+    for (var i = 0; i < numbers.length; i++) {
+      var d = leadingDigit(numbers[i]);
+      if (d >= 1 && d <= 9) {
+        counts[d - 1]++;
+        valid++;
+      }
+    }
+    var pcts = counts.map(function(c) {
+      return valid > 0 ? (c / valid) * 100 : 0;
+    });
+    return { counts: counts, pcts: pcts, valid: valid };
+  }
+
+  function simulateData(key) {
+    var dataset = generateDataset(key);
+    var dist = computeDistribution(dataset.numbers);
+
+    $('simStatus').textContent = 'Showing: ' + dataset.description;
+    $('tableArea').style.display = 'block';
+
+    var chartData = [];
+    for (var i = 0; i < 9; i++) {
+      chartData.push({
+        label: '' + (i + 1),
+        value: dist.pcts[i],
+        expected: BENFORD[i],
+        valueLabel: dist.pcts[i].toFixed(1) + '%'
+      });
+    }
+    renderBarChart('benfordChart', chartData, { showExpected: true, maxValue: 35 });
+    renderTable(dist.pcts);
+  }
+
+  function renderTable(observedPcts) {
+    var tableArea = $('tableArea');
+    if (!observedPcts) {
+      tableArea.innerHTML = '';
+      return;
+    }
+
+    var html = '<table class="data-table"><thead><tr><th>Digit</th><th>Simulated %</th><th>Benford\'s %</th><th>Difference</th></tr></thead><tbody>';
+    for (var i = 0; i < 9; i++) {
+      var diff = observedPcts[i] - BENFORD[i];
+      var diffStr = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
+      var diffClass = Math.abs(diff) > 3 ? 'lowlight' : (Math.abs(diff) < 1.5 ? 'highlight' : '');
+      html += '<tr>';
+      html += '<td><strong>' + (i + 1) + '</strong></td>';
+      html += '<td>' + observedPcts[i].toFixed(1) + '%</td>';
+      html += '<td>' + BENFORD[i].toFixed(1) + '%</td>';
+      html += '<td class="' + diffClass + '">' + diffStr + '</td>';
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    tableArea.innerHTML = html;
+  }
+
+</script>
+</body>
+</html>

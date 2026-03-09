@@ -3,532 +3,150 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Monty Hall Game</title>
+  <title>Probability Paradoxes</title>
+  <link rel="stylesheet" href="shared.css">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #1a1a2e;
-      color: #eee;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2rem 1rem;
-    }
-
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 0.25rem;
-      background: linear-gradient(135deg, #e94560, #f5a623);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .subtitle {
+    .hub-subtitle {
       color: #888;
-      margin-bottom: 1.5rem;
+      margin-bottom: 2rem;
       text-align: center;
-      max-width: 500px;
-      line-height: 1.4;
-    }
-
-    .controls {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-      margin-bottom: 1.5rem;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    .controls label {
-      font-size: 0.95rem;
-      color: #aaa;
-    }
-
-    .controls input[type="number"] {
-      width: 80px;
-      padding: 0.4rem 0.5rem;
-      border-radius: 6px;
-      border: 1px solid #444;
-      background: #16213e;
-      color: #eee;
+      max-width: 620px;
+      line-height: 1.5;
       font-size: 1rem;
-      text-align: center;
     }
 
-    button {
-      padding: 0.5rem 1.2rem;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: transform 0.1s, background 0.2s;
-    }
-
-    button:active { transform: scale(0.96); }
-
-    .btn-primary { background: #e94560; color: #fff; }
-    .btn-primary:hover { background: #d63350; }
-    .btn-secondary { background: #16213e; color: #ccc; border: 1px solid #444; }
-    .btn-secondary:hover { background: #1a2744; }
-
-    .status {
-      font-size: 1.1rem;
-      min-height: 1.6rem;
-      margin-bottom: 1rem;
-      text-align: center;
-      color: #f5a623;
-      font-weight: 600;
-    }
-
-    .doors {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--door-gap, 12px);
-      justify-content: center;
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 1.2rem;
       width: 100%;
-      max-width: 1200px;
-      margin-bottom: 1.5rem;
+      max-width: 1000px;
+      margin-bottom: 2rem;
     }
 
-    .door {
-      width: var(--door-w, 100px);
-      height: var(--door-h, 140px);
-      border-radius: var(--door-radius, 10px);
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 12px;
+      padding: 1.4rem;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.2s;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.15s, box-shadow 0.15s, background 0.2s, border-color 0.2s;
-      user-select: none;
-      position: relative;
-      overflow: hidden;
+      gap: 0.4rem;
     }
-
-    .door:hover:not(.opened):not(.disabled) {
-      transform: translateY(-3px);
-      box-shadow: 0 6px 20px rgba(233, 69, 96, 0.35);
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(233, 69, 96, 0.2);
+      border-color: var(--accent-red);
     }
-
-    /* Closed door: CSS-drawn door shape */
-    .door.closed {
-      background: linear-gradient(170deg, #2a4a7f, #16305a);
-      border: 2px solid #3a5a8a;
-    }
-
-    .door.closed .door-face {
-      width: 60%;
-      height: 65%;
-      border-radius: 3px;
-      background: linear-gradient(170deg, #1e3b66, #132a4d);
-      border: 1px solid #4a6a9a;
-      position: relative;
-    }
-
-    .door.closed .door-face::after {
-      content: '';
-      position: absolute;
-      right: 15%;
-      top: 50%;
-      transform: translateY(-50%);
-      width: var(--knob-size, 8px);
-      height: var(--knob-size, 8px);
-      border-radius: 50%;
-      background: #c9a84c;
-      box-shadow: 0 0 4px rgba(201, 168, 76, 0.5);
-    }
-
-    .door .door-number {
-      font-size: var(--num-size, 0.75rem);
-      color: #8ab;
-      position: absolute;
-      top: 3px;
-      font-weight: 600;
-    }
-
-    .door .door-icon {
-      font-size: var(--icon-size, 2.2rem);
-      line-height: 1;
-    }
-
-    .door.selected {
-      border: 2px solid #e94560;
-      box-shadow: 0 0 18px rgba(233, 69, 96, 0.5);
-      background: linear-gradient(170deg, #3a3a7f, #252060);
-    }
-
-    .door.selected .door-face {
-      background: linear-gradient(170deg, #2e2e6a, #1e1550);
-      border-color: #7a6aaa;
-    }
-
-    .door.selected .door-face::after {
-      background: #e94560;
-      box-shadow: 0 0 6px rgba(233, 69, 96, 0.7);
-    }
-
-    .door.opened {
-      cursor: default;
-      border: 2px solid #333;
-    }
-
-    .door.opened.goat {
-      background: linear-gradient(170deg, #2a2020, #1a1010);
-      border-color: #443030;
-    }
-
-    .door.opened.car {
-      background: linear-gradient(170deg, #1a3a1a, #0d2a0d);
-      border-color: #4caf50;
-      box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
-    }
-
-    .door.disabled:not(.opened) {
-      opacity: 0.3;
-      cursor: default;
-      pointer-events: none;
-    }
-
-    .door.done-clickable {
-      cursor: pointer;
-    }
-
-    /* Scoreboard */
-    .scoreboard {
-      display: flex;
-      gap: 2rem;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    .score-box {
-      background: #16213e;
-      border: 1px solid #333;
-      border-radius: 10px;
-      padding: 0.8rem 1.5rem;
-      text-align: center;
-      min-width: 120px;
-    }
-
-    .score-box .label {
-      font-size: 0.75rem;
-      color: #888;
+    .card-icon { font-size: 2rem; }
+    .card-title { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
+    .card-desc { font-size: 0.82rem; color: var(--text-dim); line-height: 1.4; }
+    .card-tag {
+      display: inline-block;
+      margin-top: auto;
+      padding: 0.15rem 0.55rem;
+      border-radius: 4px;
+      font-size: 0.65rem;
       text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .score-box .value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-top: 0.2rem;
-    }
-
-    .score-box .value.win { color: #4caf50; }
-    .score-box .value.lose { color: #e94560; }
-    .score-box .value.neutral { color: #f5a623; }
-
-    .explanation {
-      max-width: 600px;
-      background: #16213e;
-      border: 1px solid #333;
-      border-radius: 10px;
-      padding: 1.2rem 1.5rem;
-      margin-top: 1rem;
-      line-height: 1.6;
-      font-size: 0.9rem;
-      color: #aaa;
-    }
-
-    .explanation summary {
-      cursor: pointer;
-      color: #ccc;
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    .explanation p { margin-top: 0.6rem; }
-
-    @media (max-width: 500px) {
-      h1 { font-size: 1.5rem; }
+      letter-spacing: 0.5px;
+      background: rgba(233, 69, 96, 0.15);
+      color: var(--accent-red);
+      align-self: flex-start;
+      margin-top: 0.5rem;
     }
   </style>
 </head>
 <body>
 
-<h1>The Monty Hall Game</h1>
-<p class="subtitle">Pick a door. The host opens losing doors. Decide: stick or switch?</p>
+<h1>Probability Paradoxes</h1>
+<p class="hub-subtitle">
+  Interactive simulations that reveal how our intuitions about probability go spectacularly wrong.
+  Play each game, then watch the math prove you wrong.
+</p>
 
-<div class="controls">
-  <label>Doors: <input type="number" id="doorCount" min="3" value="3"></label>
-  <button class="btn-primary" onclick="startGame()">New Game</button>
-  <button class="btn-secondary" onclick="resetStats()">Reset Stats</button>
+<div class="card-grid">
+
+  <a class="card" href="monty-hall.html">
+    <span class="card-icon">🚪</span>
+    <span class="card-title">Monty Hall Problem</span>
+    <span class="card-desc">You're on a game show. You pick a door. The host opens a different door to reveal a goat. Now you can stay or switch. Does it matter which you choose?</span>
+    <span class="card-tag">Game</span>
+  </a>
+
+  <a class="card" href="birthday-paradox.html">
+    <span class="card-icon">🎂</span>
+    <span class="card-title">Birthday Paradox</span>
+    <span class="card-desc">How many people need to be in a room before there's a better-than-even chance that two of them share the same birthday? Your gut says a lot. Reality disagrees sharply.</span>
+    <span class="card-tag">Simulation</span>
+  </a>
+
+  <a class="card" href="false-positive.html">
+    <span class="card-icon">🧪</span>
+    <span class="card-title">False Positive Paradox</span>
+    <span class="card-desc">A test for a rare disease is 99% accurate. You test positive. How confident should you be that you actually have the disease? The answer defies the obvious.</span>
+    <span class="card-tag">Visualization</span>
+  </a>
+
+  <a class="card" href="simpsons-paradox.html">
+    <span class="card-icon">📊</span>
+    <span class="card-title">Simpson's Paradox</span>
+    <span class="card-desc">Can Treatment A outperform Treatment B in every individual trial, yet still lose when the results are combined? Most people say that's mathematically impossible.</span>
+    <span class="card-tag">Data Explorer</span>
+  </a>
+
+  <a class="card" href="sleeping-beauty.html">
+    <span class="card-icon">😴</span>
+    <span class="card-title">Sleeping Beauty Problem</span>
+    <span class="card-desc">A fair coin is flipped while you sleep. Depending on the result, you may be woken once or twice with your memory erased in between. When you wake up, what should you believe about the coin?</span>
+    <span class="card-tag">Debate</span>
+  </a>
+
+  <a class="card" href="bertrands-box.html">
+    <span class="card-icon">📦</span>
+    <span class="card-title">Bertrand's Box Paradox</span>
+    <span class="card-desc">Three boxes contain two gold coins, two silver coins, or one of each. You draw a gold coin from a random box. What are the odds the other coin in that box is also gold?</span>
+    <span class="card-tag">Game</span>
+  </a>
+
+  <a class="card" href="st-petersburg.html">
+    <span class="card-icon">🪙</span>
+    <span class="card-title">St. Petersburg Paradox</span>
+    <span class="card-desc">A casino offers a game: flip a coin until tails, and your payout doubles with each heads. The entry fee is up to you. How much would a rational person pay to play?</span>
+    <span class="card-tag">Game</span>
+  </a>
+
+  <a class="card" href="benfords-law.html">
+    <span class="card-icon">🔢</span>
+    <span class="card-title">Benford's Law</span>
+    <span class="card-desc">In large real-world datasets — populations, prices, election results — the leading digits are not evenly distributed. This quirk is so reliable it's used to detect fraud.</span>
+    <span class="card-tag">Explorer</span>
+  </a>
+
+  <a class="card" href="secretary-problem.html">
+    <span class="card-icon">💼</span>
+    <span class="card-title">Secretary Problem</span>
+    <span class="card-desc">You interview candidates one by one and must hire or reject each on the spot — no going back. What's the mathematically optimal strategy to find the best person?</span>
+    <span class="card-tag">Strategy</span>
+  </a>
+
+  <a class="card" href="penneys-game.html">
+    <span class="card-icon">🎰</span>
+    <span class="card-title">Penney's Game</span>
+    <span class="card-desc">Both players choose a 3-flip coin sequence. You flip until one appears. Since a fair coin is used, it should be 50/50 — right? Pick your sequence first and find out.</span>
+    <span class="card-tag">Game</span>
+  </a>
+
+  <a class="card" href="prisoners-riddle.html">
+    <span class="card-icon">🔒</span>
+    <span class="card-title">100 Prisoners Riddle</span>
+    <span class="card-desc">100 prisoners. 100 boxes. Each must find their own number by opening only 50 boxes. If anyone fails, they all die. Can a pre-agreed strategy give them a realistic chance?</span>
+    <span class="card-tag">Simulation</span>
+  </a>
+
 </div>
-
-<div class="status" id="status">Pick a door!</div>
-
-<div class="doors" id="doors"></div>
-
-<div class="scoreboard">
-  <div class="score-box">
-    <div class="label">Games</div>
-    <div class="value neutral" id="totalGames">0</div>
-  </div>
-  <div class="score-box">
-    <div class="label">Wins (stayed)</div>
-    <div class="value win" id="stayWins">0/0</div>
-  </div>
-  <div class="score-box">
-    <div class="label">Wins (switched)</div>
-    <div class="value win" id="switchWins">0/0</div>
-  </div>
-</div>
-
-<details class="explanation">
-  <summary>How does this work?</summary>
-  <p>
-    Behind one door is a car; the rest have goats. You pick a door, then the host
-    (who knows what's behind each door) opens <strong>N&minus;2</strong> other doors that all
-    have goats. You then choose: <strong>stay</strong> with your original pick or
-    <strong>switch</strong> to the one remaining unopened door.
-  </p>
-  <p>
-    With <strong>N</strong> doors, staying wins with probability <strong>1/N</strong>,
-    while switching wins with probability <strong>(N&minus;1)/N</strong>. The more doors,
-    the bigger the advantage of switching!
-  </p>
-</details>
-
-<script>
-  let state = {
-    phase: 'pick',   // pick | switch | done
-    n: 3,
-    carDoor: 0,
-    picked: -1,
-    doors: [],       // 'closed' | 'opened-goat' | 'opened-car'
-  };
-
-  let stats = { total: 0, stayWins: 0, stayTotal: 0, switchWins: 0, switchTotal: 0 };
-
-  function loadStats() {
-    try {
-      const s = JSON.parse(localStorage.getItem('montyStats'));
-      if (s) stats = s;
-    } catch {}
-  }
-
-  function saveStats() {
-    localStorage.setItem('montyStats', JSON.stringify(stats));
-  }
-
-  function renderStats() {
-    document.getElementById('totalGames').textContent = stats.total;
-    const stayPct = stats.stayTotal ? ((stats.stayWins / stats.stayTotal) * 100).toFixed(0) + '%' : '-';
-    const switchPct = stats.switchTotal ? ((stats.switchWins / stats.switchTotal) * 100).toFixed(0) + '%' : '-';
-    document.getElementById('stayWins').textContent = `${stats.stayWins}/${stats.stayTotal} (${stayPct})`;
-    document.getElementById('switchWins').textContent = `${stats.switchWins}/${stats.switchTotal} (${switchPct})`;
-  }
-
-  function resetStats() {
-    stats = { total: 0, stayWins: 0, stayTotal: 0, switchWins: 0, switchTotal: 0 };
-    saveStats();
-    renderStats();
-  }
-
-  function setStatus(msg) {
-    document.getElementById('status').textContent = msg;
-  }
-
-  function computeDoorSizes(n) {
-    // Scale door sizes based on count so any N fits on screen
-    const container = document.getElementById('doors');
-    const maxW = Math.min(window.innerWidth - 40, 1200);
-
-    if (n <= 5) {
-      return { w: 100, h: 140, gap: 12, radius: 10, icon: 2.2, num: 0.75, knob: 8 };
-    } else if (n <= 12) {
-      return { w: 85, h: 120, gap: 10, radius: 8, icon: 1.8, num: 0.7, knob: 7 };
-    } else if (n <= 30) {
-      return { w: 65, h: 90, gap: 8, radius: 7, icon: 1.4, num: 0.6, knob: 6 };
-    } else if (n <= 80) {
-      return { w: 48, h: 66, gap: 6, radius: 6, icon: 1.1, num: 0.5, knob: 5 };
-    } else if (n <= 200) {
-      return { w: 34, h: 46, gap: 4, radius: 5, icon: 0.85, num: 0.4, knob: 4 };
-    } else if (n <= 500) {
-      return { w: 24, h: 32, gap: 3, radius: 4, icon: 0.65, num: 0, knob: 3 };
-    } else {
-      return { w: 16, h: 20, gap: 2, radius: 3, icon: 0.45, num: 0, knob: 2 };
-    }
-  }
-
-  function applyDoorSizes(sizes) {
-    const container = document.getElementById('doors');
-    container.style.setProperty('--door-w', sizes.w + 'px');
-    container.style.setProperty('--door-h', sizes.h + 'px');
-    container.style.setProperty('--door-gap', sizes.gap + 'px');
-    container.style.setProperty('--door-radius', sizes.radius + 'px');
-    container.style.setProperty('--icon-size', sizes.icon + 'rem');
-    container.style.setProperty('--num-size', sizes.num + 'rem');
-    container.style.setProperty('--knob-size', sizes.knob + 'px');
-  }
-
-  function startGame() {
-    const input = document.getElementById('doorCount');
-    let n = parseInt(input.value, 10);
-    if (isNaN(n) || n < 3) n = 3;
-    input.value = n;
-
-    state.n = n;
-    state.carDoor = Math.floor(Math.random() * n);
-    state.picked = -1;
-    state.phase = 'pick';
-    state.doors = Array(n).fill('closed');
-
-    setStatus('Step 1: Pick a door!');
-    renderDoors();
-  }
-
-  function renderDoors() {
-    const container = document.getElementById('doors');
-    container.innerHTML = '';
-
-    const sizes = computeDoorSizes(state.n);
-    applyDoorSizes(sizes);
-    const showNumbers = sizes.num > 0;
-
-    for (let i = 0; i < state.n; i++) {
-      const door = document.createElement('div');
-      door.className = 'door';
-
-      if (showNumbers) {
-        const num = document.createElement('span');
-        num.className = 'door-number';
-        num.textContent = i + 1;
-        door.appendChild(num);
-      }
-
-      if (state.doors[i] === 'closed') {
-        door.classList.add('closed');
-        if (state.picked === i) door.classList.add('selected');
-
-        // CSS-drawn door face (panel + knob)
-        const face = document.createElement('div');
-        face.className = 'door-face';
-        door.appendChild(face);
-
-        if (state.phase === 'switch' && i !== state.picked && i !== remainingDoor()) {
-          door.classList.add('disabled');
-        }
-
-        if (state.phase === 'done') {
-          door.classList.add('done-clickable');
-        }
-      } else if (state.doors[i] === 'opened-goat') {
-        door.classList.add('opened', 'goat');
-        const icon = document.createElement('span');
-        icon.className = 'door-icon';
-        icon.textContent = '🐐';
-        door.appendChild(icon);
-
-        if (state.phase === 'done') {
-          door.classList.add('done-clickable');
-        }
-      } else if (state.doors[i] === 'opened-car') {
-        door.classList.add('opened', 'car');
-        const icon = document.createElement('span');
-        icon.className = 'door-icon';
-        icon.textContent = '🚗';
-        door.appendChild(icon);
-
-        if (state.phase === 'done') {
-          door.classList.add('done-clickable');
-        }
-      }
-
-      door.addEventListener('click', () => onDoorClick(i));
-      container.appendChild(door);
-    }
-  }
-
-  function remainingDoor() {
-    for (let i = 0; i < state.n; i++) {
-      if (state.doors[i] === 'closed' && i !== state.picked) return i;
-    }
-    return -1;
-  }
-
-  function onDoorClick(i) {
-    if (state.phase === 'done') {
-      // Any click after the game ends starts a new game
-      startGame();
-      return;
-    }
-
-    if (state.phase === 'pick') {
-      state.picked = i;
-      state.phase = 'switch';
-
-      const openable = [];
-      for (let j = 0; j < state.n; j++) {
-        if (j !== i && j !== state.carDoor) openable.push(j);
-      }
-      shuffle(openable);
-      const toOpen = state.n - 2;
-      for (let k = 0; k < toOpen && k < openable.length; k++) {
-        state.doors[openable[k]] = 'opened-goat';
-      }
-
-      const other = remainingDoor();
-      setStatus(`Step 2: Stay with door ${i + 1}, or switch to door ${other + 1}?`);
-      renderDoors();
-
-    } else if (state.phase === 'switch') {
-      const other = remainingDoor();
-      if (i !== state.picked && i !== other) return;
-
-      const switched = (i !== state.picked);
-      const won = (i === state.carDoor);
-
-      for (let j = 0; j < state.n; j++) {
-        if (state.doors[j] === 'closed') {
-          state.doors[j] = j === state.carDoor ? 'opened-car' : 'opened-goat';
-        }
-      }
-      state.phase = 'done';
-
-      stats.total++;
-      if (switched) {
-        stats.switchTotal++;
-        if (won) stats.switchWins++;
-      } else {
-        stats.stayTotal++;
-        if (won) stats.stayWins++;
-      }
-      saveStats();
-      renderStats();
-
-      const action = switched ? 'switched' : 'stayed';
-      const result = won ? 'You won the car! 🎉' : 'You got a goat. 🐐';
-      setStatus(`You ${action}. ${result}  Click anywhere to play again.`);
-      renderDoors();
-    }
-  }
-
-  function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-  }
-
-  loadStats();
-  renderStats();
-  startGame();
-</script>
 
 </body>
 </html>

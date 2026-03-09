@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>False Positive Paradox - Probability Paradoxes</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .guess-area {
+      background: var(--bg-card);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem auto;
+      max-width: 600px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .guess-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+    .guess-btn {
+      padding: 0.8rem 1.5rem;
+      border: 2px solid var(--border-mid);
+      border-radius: 8px;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex: 1 1 calc(50% - 1rem);
+      min-width: 140px;
+    }
+    .guess-btn:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent-gold);
+      box-shadow: 0 4px 12px rgba(245, 166, 35, 0.2);
+    }
+
+    .simulation-area {
+      display: none;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.6rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .slider-row label {
+      min-width: 130px;
+      text-align: right;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .slider-row input[type="range"] {
+      width: 200px;
+      accent-color: var(--accent-red);
+    }
+    .slider-row .slider-value {
+      min-width: 65px;
+      text-align: left;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .result-panel {
+      text-align: center;
+      margin: 1.2rem 0;
+    }
+    .result-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+      letter-spacing: 0.5px;
+    }
+    .result-formula {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 0.3rem;
+      font-family: 'Consolas', 'Courier New', monospace;
+    }
+    
+    .result-text {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .dot-grid {
+      margin: 1rem auto;
+      padding: 0.8rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 10px;
+    }
+
+    .breakdown {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 1rem 0;
+    }
+    .breakdown-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      text-align: center;
+      min-width: 130px;
+    }
+    .breakdown-item .count {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 0.1rem;
+    }
+    .breakdown-item .desc {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .count-tp { color: var(--accent-green); }
+    .count-fp { color: var(--accent-red); }
+    .count-tn { color: #555; }
+    .count-fn { color: var(--accent-gold); }
+
+    .insight-box {
+      max-width: 600px;
+      margin: 0.8rem auto;
+      padding: 0.8rem 1.2rem;
+      background: rgba(233, 69, 96, 0.08);
+      border: 1px solid rgba(233, 69, 96, 0.25);
+      border-radius: 8px;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      min-height: 2.5rem;
+    }
+    
+    .definitions {
+      background: var(--bg-subtle);
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem auto 2rem;
+      max-width: 600px;
+      text-align: left;
+      font-size: 0.9rem;
+      border: 1px solid var(--border-mid);
+    }
+    .definitions ul {
+      margin: 0.5rem 0 0 1.5rem;
+    }
+    .definitions li {
+      margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 500px) {
+      .slider-row label { min-width: 90px; font-size: 0.8rem; }
+      .slider-row input[type="range"] { width: 140px; }
+      .breakdown-item { min-width: 100px; padding: 0.5rem 0.6rem; }
+      .breakdown-item .count { font-size: 1.1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">&larr; Back to Games</a>
+<h1>The False Positive Paradox</h1>
+<p class="subtitle"></p>
+
+<div class="definitions">
+  <strong>Key Terms to Know:</strong>
+  <ul>
+    <li><strong>Prevalence:</strong> The percentage of the population that actually has the disease.</li>
+    <li><strong>Sensitivity (True Positive Rate):</strong> If you <em>have</em> the disease, how likely is the test to correctly say you have it?</li>
+    <li><strong>Specificity (True Negative Rate):</strong> If you <em>do not</em> have the disease, how likely is the test to correctly say you don't?</li>
+  </ul>
+</div>
+
+<div class="guess-area" id="guessArea">
+  <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 1rem;">
+    Imagine a rare disease that affects <strong>1% of the population</strong>.
+  </p>
+  <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 1rem;">
+    You go to the doctor and take a test for this disease. 
+    The test is excellent: it has <strong>99% Sensitivity</strong> (it catches 99% of sick people) and <strong>99% Specificity</strong> (it correctly clears 99% of healthy people).
+  </p>
+  <p style="font-size: 1.1rem; line-height: 1.6;">
+    Your test result comes back <strong>positive</strong>. What is the actual probability that you have the disease?
+  </p>
+  
+  <div class="guess-buttons">
+    <button class="guess-btn" onclick="makeGuess(99)">99%</button>
+    <button class="guess-btn" onclick="makeGuess(50)">50%</button>
+    <button class="guess-btn" onclick="makeGuess(10)">10%</button>
+    <button class="guess-btn" onclick="makeGuess(1)">1%</button>
+  </div>
+</div>
+
+<div class="status" id="status" style="display: none;">Population: 1,000 people</div>
+
+<div class="simulation-area" id="simulationArea">
+  <div class="result-text" id="resultText"></div>
+
+  <div class="controls" style="flex-direction: column; align-items: center; margin-top: 1.5rem;">
+    <div class="slider-row">
+      <label for="prevalence" title="Percentage of population with the disease">Disease prevalence:</label>
+      <div class="slider-group">
+        <input type="range" id="prevalence" min="1" max="5000" value="100">
+        <span class="slider-value" id="prevalenceVal">1.00%</span>
+      </div>
+    </div>
+    <div class="slider-row">
+      <label for="sensitivity" title="Ability to correctly identify sick people">Test sensitivity:</label>
+      <div class="slider-group">
+        <input type="range" id="sensitivity" min="500" max="999" value="990">
+        <span class="slider-value" id="sensitivityVal">99.0%</span>
+      </div>
+    </div>
+    <div class="slider-row">
+      <label for="specificity" title="Ability to correctly identify healthy people">Test specificity:</label>
+      <div class="slider-group">
+        <input type="range" id="specificity" min="500" max="999" value="990">
+        <span class="slider-value" id="specificityVal">99.0%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-panel">
+    <div class="result-label">P(Disease | Positive Test)</div>
+    <div class="big-result" id="bigResult">50.0%</div>
+    <div class="result-formula" id="resultFormula">10 / (10 + 10) = 50.0%</div>
+  </div>
+
+  <div class="breakdown" id="breakdown">
+    <div class="breakdown-item"><div class="count count-tp" id="tpCount">10</div><div class="desc">True Positives</div></div>
+    <div class="breakdown-item"><div class="count count-fp" id="fpCount">10</div><div class="desc">False Positives</div></div>
+    <div class="breakdown-item"><div class="count count-fn" id="fnCount">0</div><div class="desc">False Negatives</div></div>
+    <div class="breakdown-item"><div class="count count-tn" id="tnCount">980</div><div class="desc">True Negatives</div></div>
+  </div>
+
+  <div class="dot-grid" id="dotGrid"></div>
+
+  <div class="legend" id="legend">
+    <div class="legend-item"><span class="legend-dot" style="background: var(--accent-green);"></span> True Positive</div>
+    <div class="legend-item"><span class="legend-dot" style="background: var(--accent-red);"></span> False Positive</div>
+    <div class="legend-item"><span class="legend-dot" style="background: var(--accent-gold);"></span> False Negative</div>
+    <div class="legend-item"><span class="legend-dot" style="background: #2a2a3e;"></span> True Negative</div>
+  </div>
+
+  <div class="insight-box" id="insightBox"></div>
+
+  <details class="explanation" style="margin-top: 1.5rem;">
+    <summary>How does this work?</summary>
+    <p>This is <strong>Bayes' Theorem</strong> in action, demonstrating the <strong>Base Rate Fallacy</strong>. Even with a highly accurate test, when a disease is rare (the base rate), most positive results are actually false alarms.</p>
+    <p>Imagine 1,000 people. If 1% have the disease (10 people), a 99% sensitive test correctly identifies ~10 of them (True Positives).</p>
+    <p>But there are 990 healthy people. A 99% specific test means it will be wrong 1% of the time for healthy people. 1% of 990 is ~10 people (False Positives).</p>
+    <p>So out of ~20 total positive results, only ~10 actually have the disease. That means your chance of being sick if you test positive is only <strong>50%</strong>!</p>
+    <p>Now drop prevalence to 0.1% using the sliders. Only 1 person is sick. The test still produces ~10 false positives among the 999 healthy people. So P(Disease|Positive) drops to about <strong>9%</strong>. This is why mass screening for extremely rare conditions often causes more unnecessary stress than benefit.</p>
+  </details>
+</div>
+
+<script src="shared.js"></script>
+<script>
+  var POPULATION = 1000;
+
+  var prevSlider = $('prevalence');
+  var sensSlider = $('sensitivity');
+  var specSlider = $('specificity');
+
+  function makeGuess(guess) {
+    $('guessArea').style.display = 'none';
+    $('status').style.display = 'block';
+    $('simulationArea').style.display = 'block';
+
+    var resultTextEl = $('resultText');
+    if (guess === 50) {
+      resultTextEl.innerHTML = '<span class="win">Correct!</span> It\'s a coin toss (50%).';
+    } else {
+      if (guess === 99) {
+         resultTextEl.innerHTML = '<span class="lose">Not quite!</span> Almost everyone guesses 99% because the test is 99% accurate. But the real answer is exactly <strong>50%</strong>!';
+      } else {
+         resultTextEl.innerHTML = '<span class="lose">Incorrect!</span> The correct answer is exactly <strong>50%</strong> (a coin toss).';
+      }
+    }
+    
+    // Ensure sliders are set to the initial puzzle state
+    prevSlider.value = 100; // 1%
+    sensSlider.value = 990; // 99%
+    specSlider.value = 990; // 99%
+    
+    update();
+  }
+
+  // Slider ranges:
+  // prevalence: 1..5000 maps to 0.01%..50.00% (value / 100 = percentage)
+  // sensitivity: 500..999 maps to 50.0%..99.9% (value / 10 = percentage)
+  // specificity: 500..999 maps to 50.0%..99.9% (value / 10 = percentage)
+
+  function getPrevalence() { return parseFloat(prevSlider.value) / 10000; }
+  function getSensitivity() { return parseFloat(sensSlider.value) / 1000; }
+  function getSpecificity() { return parseFloat(specSlider.value) / 1000; }
+
+  function formatPrev(v) {
+    var p = v * 100;
+    if (p < 0.1) return p.toFixed(2) + '%';
+    if (p < 1) return p.toFixed(2) + '%';
+    if (p < 10) return p.toFixed(1) + '%';
+    return p.toFixed(0) + '%';
+  }
+
+  function compute() {
+    var prevalence = getPrevalence();
+    var sensitivity = getSensitivity();
+    var specificity = getSpecificity();
+
+    var sick = Math.round(POPULATION * prevalence);
+    var healthy = POPULATION - sick;
+
+    var truePositive = Math.round(sick * sensitivity);
+    var falseNegative = sick - truePositive;
+    var trueNegative = Math.round(healthy * specificity);
+    var falsePositive = healthy - trueNegative;
+
+    var totalPositive = truePositive + falsePositive;
+    var ppv = totalPositive > 0 ? truePositive / totalPositive : 0;
+
+    return {
+      prevalence: prevalence,
+      sensitivity: sensitivity,
+      specificity: specificity,
+      sick: sick,
+      healthy: healthy,
+      truePositive: truePositive,
+      falsePositive: falsePositive,
+      trueNegative: trueNegative,
+      falseNegative: falseNegative,
+      totalPositive: totalPositive,
+      ppv: ppv
+    };
+  }
+
+  function getResultClass(ppv) {
+    if (ppv >= 0.7) return 'win';
+    if (ppv <= 0.3) return 'lose';
+    return '';
+  }
+
+  function getInsight(data) {
+    var ppvPct = data.ppv * 100;
+    if (data.totalPositive === 0) {
+      return 'No positive test results in this population.';
+    }
+    if (ppvPct < 10) {
+      return 'Fewer than 1 in 10 positive results are real! The test is nearly useless for screening at this prevalence.';
+    }
+    if (ppvPct < 25) {
+      return 'Most positive results are false alarms. This is why mass screening for rare diseases is problematic.';
+    }
+    if (ppvPct < 50) {
+      return 'Less than a coin flip! A positive test still means you\'re more likely healthy than sick.';
+    }
+    if (ppvPct < 75) {
+      return 'Getting more useful, but there\'s still a significant chance of a false alarm.';
+    }
+    if (ppvPct < 90) {
+      return 'The test is fairly reliable at this prevalence. Most positives are true positives.';
+    }
+    return 'High positive predictive value. The test is very reliable at this disease prevalence.';
+  }
+
+  function buildDotGrid(data) {
+    var grid = $('dotGrid');
+    grid.innerHTML = '';
+
+    // Build a classification array and shuffle for visual interest
+    var dots = [];
+    for (var i = 0; i < data.truePositive; i++) dots.push('true-positive');
+    for (var i = 0; i < data.falsePositive; i++) dots.push('false-positive');
+    for (var i = 0; i < data.falseNegative; i++) dots.push('false-negative');
+    for (var i = 0; i < data.trueNegative; i++) dots.push('true-negative');
+
+    // Pad or trim to POPULATION
+    while (dots.length < POPULATION) dots.push('true-negative');
+    if (dots.length > POPULATION) dots.length = POPULATION;
+
+    shuffle(dots);
+
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < dots.length; i++) {
+      var dot = document.createElement('div');
+      dot.className = 'dot ' + dots[i];
+      frag.appendChild(dot);
+    }
+    grid.appendChild(frag);
+  }
+
+  function update() {
+    // Update slider labels
+    setText('prevalenceVal', formatPrev(getPrevalence()));
+    setText('sensitivityVal', (getSensitivity() * 100).toFixed(1) + '%');
+    setText('specificityVal', (getSpecificity() * 100).toFixed(1) + '%');
+
+    var data = compute();
+
+    // Update counts
+    setText('tpCount', fmtNum(data.truePositive));
+    setText('fpCount', fmtNum(data.falsePositive));
+    setText('fnCount', fmtNum(data.falseNegative));
+    setText('tnCount', fmtNum(data.trueNegative));
+
+    // Update big result
+    var resultEl = $('bigResult');
+    var ppvStr = data.totalPositive > 0 ? (data.ppv * 100).toFixed(1) + '%' : 'N/A';
+    resultEl.textContent = ppvStr;
+    resultEl.className = 'big-result ' + getResultClass(data.ppv);
+
+    // Update formula
+    var formulaStr = data.truePositive + ' / (' + data.truePositive + ' + ' + data.falsePositive + ') = ' + ppvStr;
+    setText('resultFormula', formulaStr);
+
+    // Status
+    setText('status', 'Population: ' + fmtNum(POPULATION) + ' people  \u2022  ' + fmtNum(data.sick) + ' sick  \u2022  ' + fmtNum(data.healthy) + ' healthy');
+
+    // Insight
+    setText('insightBox', getInsight(data));
+
+    // Dot grid
+    buildDotGrid(data);
+  }
+
+  prevSlider.addEventListener('input', update);
+  sensSlider.addEventListener('input', update);
+  specSlider.addEventListener('input', update);
+
+  // Initialize without calling update() so we don't flash the grid
+</script>
+</body>
+</html>

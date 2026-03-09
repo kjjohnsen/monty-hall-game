@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monty Hall Problem - Probability Paradoxes</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .doors {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--door-gap, 12px);
+      justify-content: center;
+      width: 100%;
+      max-width: 1200px;
+      margin-bottom: 1.5rem;
+    }
+    .door {
+      width: var(--door-w, 100px);
+      height: var(--door-h, 140px);
+      border-radius: var(--door-radius, 10px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, background 0.2s, border-color 0.2s;
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .door:hover:not(.opened):not(.disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(233, 69, 96, 0.35);
+    }
+    .door.closed {
+      background: linear-gradient(170deg, #2a4a7f, #16305a);
+      border: 2px solid #3a5a8a;
+    }
+    .door.closed .door-face {
+      width: 60%; height: 65%;
+      border-radius: 3px;
+      background: linear-gradient(170deg, #1e3b66, #132a4d);
+      border: 1px solid #4a6a9a;
+      position: relative;
+    }
+    .door.closed .door-face::after {
+      content: '';
+      position: absolute;
+      right: 15%; top: 50%;
+      transform: translateY(-50%);
+      width: var(--knob-size, 8px);
+      height: var(--knob-size, 8px);
+      border-radius: 50%;
+      background: #c9a84c;
+      box-shadow: 0 0 4px rgba(201, 168, 76, 0.5);
+    }
+    .door .door-number {
+      font-size: var(--num-size, 0.75rem);
+      color: #8ab;
+      position: absolute;
+      top: 3px;
+      font-weight: 600;
+    }
+    .door .door-icon {
+      font-size: var(--icon-size, 2.2rem);
+      line-height: 1;
+    }
+    .door.selected {
+      border: 2px solid #e94560;
+      box-shadow: 0 0 18px rgba(233, 69, 96, 0.5);
+      background: linear-gradient(170deg, #3a3a7f, #252060);
+    }
+    .door.selected .door-face {
+      background: linear-gradient(170deg, #2e2e6a, #1e1550);
+      border-color: #7a6aaa;
+    }
+    .door.selected .door-face::after {
+      background: #e94560;
+      box-shadow: 0 0 6px rgba(233, 69, 96, 0.7);
+    }
+    .door.opened { cursor: default; border: 2px solid #333; }
+    .door.opened.goat {
+      background: linear-gradient(170deg, #2a2020, #1a1010);
+      border-color: #443030;
+    }
+    .door.opened.car {
+      background: linear-gradient(170deg, #1a3a1a, #0d2a0d);
+      border-color: #4caf50;
+      box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
+    }
+    .door.disabled:not(.opened) {
+      opacity: 0.3; cursor: default; pointer-events: none;
+    }
+    .door.done-clickable { cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">&larr; Back to Games</a>
+<h1>The Monty Hall Problem</h1>
+<p class="subtitle">You're on a game show. Pick a door. The host opens a different door to reveal a goat. Now you can stay or switch. Does it matter?</p>
+
+<div class="quiz-panel" id="quizPanel">
+  <h2>Before you play — what's your gut say?</h2>
+  <p class="quiz-question">
+    You've picked Door #1 out of 3. The host (who knows what's behind every door) opens Door #2, revealing a goat. You can now stay with Door #1 or switch to Door #3.<br><br>
+    What gives you the best chance of winning the car?
+  </p>
+  <div class="quiz-options">
+    <button class="quiz-btn" onclick="montyQuiz('stay')">Stay with Door #1 — I already chose randomly</button>
+    <button class="quiz-btn" onclick="montyQuiz('switch')">Switch to Door #3 — the odds have changed</button>
+    <button class="quiz-btn" onclick="montyQuiz('fifty')">Doesn't matter — it's 50/50 either way</button>
+    <button class="quiz-btn" onclick="montyQuiz('depends')">It depends on why the host opened that door</button>
+  </div>
+  <div class="quiz-feedback" id="quizFeedback">
+    <span id="quizFeedbackText"></span><br>
+    <button class="quiz-continue" onclick="document.getElementById('quizPanel').style.display='none'; document.getElementById('gameSection').style.display='contents';">Play to find out &rarr;</button>
+  </div>
+</div>
+
+<div id="gameSection" style="display:none; contents: flex; flex-direction: column; align-items: center; width: 100%;">
+<div class="controls">
+  <label>Doors: <input type="number" id="doorCount" min="3" value="3"></label>
+  <button class="btn-primary" onclick="startGame()">New Game</button>
+  <button class="btn-secondary" onclick="autoRun(100)">Auto-Run 100</button>
+  <button class="btn-secondary btn-small" onclick="resetStats()">Reset Stats</button>
+</div>
+
+<div class="status" id="status">Pick a door!</div>
+<div class="doors" id="doors"></div>
+
+<div class="scoreboard">
+  <div class="score-box"><div class="label">Games</div><div class="value neutral" id="totalGames">0</div></div>
+  <div class="score-box"><div class="label">Wins (stayed)</div><div class="value win" id="stayWins">0/0</div></div>
+  <div class="score-box"><div class="label">Wins (switched)</div><div class="value win" id="switchWins">0/0</div></div>
+</div>
+
+<details class="explanation">
+  <summary>How does this work?</summary>
+  <p>Behind one door is a car; the rest have goats. You pick a door, then the host opens <strong>N&minus;2</strong> other doors that all have goats. You choose: <strong>stay</strong> with your original pick or <strong>switch</strong> to the remaining unopened door.</p>
+  <p>With <strong>N</strong> doors, staying wins with probability <strong>1/N</strong>, while switching wins with probability <strong>(N&minus;1)/N</strong>. The more doors, the bigger the advantage of switching!</p>
+</details>
+</div><!-- end gameSection -->
+
+<script src="shared.js"></script>
+<script>
+  var state = { phase:'pick', n:3, carDoor:0, picked:-1, doors:[] };
+  var stats = loadState('montyStats', { total:0, stayWins:0, stayTotal:0, switchWins:0, switchTotal:0 });
+
+  function renderStats() {
+    setText('totalGames', stats.total);
+    var sp = stats.stayTotal ? ((stats.stayWins/stats.stayTotal)*100).toFixed(0)+'%' : '-';
+    var swp = stats.switchTotal ? ((stats.switchWins/stats.switchTotal)*100).toFixed(0)+'%' : '-';
+    setText('stayWins', stats.stayWins+'/'+stats.stayTotal+' ('+sp+')');
+    setText('switchWins', stats.switchWins+'/'+stats.switchTotal+' ('+swp+')');
+  }
+
+  function autoRun(runs) {
+    var input=$('doorCount');
+    var n=parseInt(input.value,10);
+    if(isNaN(n)||n<3) n=3;
+    
+    for (var i = 0; i < runs; i++) {
+      var car = Math.floor(Math.random() * n);
+      var picked = Math.floor(Math.random() * n);
+      
+      // Sim stay
+      stats.total++;
+      stats.stayTotal++;
+      if (picked === car) {
+        stats.stayWins++;
+      }
+      
+      // Sim switch (simulate an independent game where we always switch)
+      var car2 = Math.floor(Math.random() * n);
+      var picked2 = Math.floor(Math.random() * n);
+      stats.total++;
+      stats.switchTotal++;
+      if (picked2 !== car2) { // if you pick wrong initially, switching wins (in 3-door). In N-door, you switch to the ONLY remaining door, so you win if you picked wrong initially.
+         stats.switchWins++;
+      }
+    }
+    
+    saveState('montyStats',stats); 
+    renderStats();
+    setText('status', 'Ran ' + (runs*2) + ' simulated games (' + runs + ' stay, ' + runs + ' switch).');
+  }
+
+  function resetStats() {
+    stats = { total:0, stayWins:0, stayTotal:0, switchWins:0, switchTotal:0 };
+    saveState('montyStats', stats); renderStats();
+  }
+
+  function computeSizes(n) {
+    if (n<=5) return {w:100,h:140,gap:12,radius:10,icon:2.2,num:0.75,knob:8};
+    if (n<=12) return {w:85,h:120,gap:10,radius:8,icon:1.8,num:0.7,knob:7};
+    if (n<=30) return {w:65,h:90,gap:8,radius:7,icon:1.4,num:0.6,knob:6};
+    if (n<=80) return {w:48,h:66,gap:6,radius:6,icon:1.1,num:0.5,knob:5};
+    if (n<=200) return {w:34,h:46,gap:4,radius:5,icon:0.85,num:0.4,knob:4};
+    if (n<=500) return {w:24,h:32,gap:3,radius:4,icon:0.65,num:0,knob:3};
+    return {w:16,h:20,gap:2,radius:3,icon:0.45,num:0,knob:2};
+  }
+
+  function applySizes(s) {
+    var c=$('doors');
+    c.style.setProperty('--door-w',s.w+'px');
+    c.style.setProperty('--door-h',s.h+'px');
+    c.style.setProperty('--door-gap',s.gap+'px');
+    c.style.setProperty('--door-radius',s.radius+'px');
+    c.style.setProperty('--icon-size',s.icon+'rem');
+    c.style.setProperty('--num-size',s.num+'rem');
+    c.style.setProperty('--knob-size',s.knob+'px');
+  }
+
+  function startGame() {
+    var input=$('doorCount');
+    var n=parseInt(input.value,10);
+    if(isNaN(n)||n<3) n=3;
+    input.value=n;
+    state={phase:'pick',n:n,carDoor:Math.floor(Math.random()*n),picked:-1,doors:Array(n).fill('closed')};
+    setText('status','Step 1: Pick a door!');
+    renderDoors();
+  }
+
+  function remainingDoor() {
+    for(var i=0;i<state.n;i++) if(state.doors[i]==='closed'&&i!==state.picked) return i;
+    return -1;
+  }
+
+  function renderDoors() {
+    var c=$('doors'); c.innerHTML='';
+    var s=computeSizes(state.n); applySizes(s);
+    var showNum=s.num>0;
+    for(var i=0;i<state.n;i++){
+      var d=el('div','door');
+      if(showNum) d.appendChild(el('span','door-number',''+(i+1)));
+      if(state.doors[i]==='closed'){
+        d.classList.add('closed');
+        if(state.picked===i) d.classList.add('selected');
+        d.appendChild(el('div','door-face'));
+        if(state.phase==='switch'&&i!==state.picked&&i!==remainingDoor()) d.classList.add('disabled');
+        if(state.phase==='done') d.classList.add('done-clickable');
+      } else if(state.doors[i]==='opened-goat'){
+        d.classList.add('opened','goat');
+        d.appendChild(el('span','door-icon','\u{1F410}'));
+        if(state.phase==='done') d.classList.add('done-clickable');
+      } else {
+        d.classList.add('opened','car');
+        d.appendChild(el('span','door-icon','\u{1F697}'));
+        if(state.phase==='done') d.classList.add('done-clickable');
+      }
+      (function(idx){d.addEventListener('click',function(){onDoorClick(idx)});})(i);
+      c.appendChild(d);
+    }
+  }
+
+  function onDoorClick(i) {
+    if(state.phase==='done'){startGame();return;}
+    if(state.phase==='pick'){
+      state.picked=i; state.phase='switch';
+      var openable=[];
+      for(var j=0;j<state.n;j++) if(j!==i&&j!==state.carDoor) openable.push(j);
+      shuffle(openable);
+      for(var k=0;k<state.n-2&&k<openable.length;k++) state.doors[openable[k]]='opened-goat';
+      var other=remainingDoor();
+      setText('status','Step 2: Stay with door '+(i+1)+', or switch to door '+(other+1)+'?');
+      renderDoors();
+    } else if(state.phase==='switch'){
+      var other=remainingDoor();
+      if(i!==state.picked&&i!==other) return;
+      var switched=(i!==state.picked), won=(i===state.carDoor);
+      for(var j=0;j<state.n;j++) if(state.doors[j]==='closed') state.doors[j]=j===state.carDoor?'opened-car':'opened-goat';
+      state.phase='done';
+      stats.total++;
+      if(switched){stats.switchTotal++;if(won)stats.switchWins++;}
+      else{stats.stayTotal++;if(won)stats.stayWins++;}
+      saveState('montyStats',stats); renderStats();
+      var act=switched?'switched':'stayed';
+      var res=won?'You won the car! \u{1F389}':'You got a goat. \u{1F410}';
+      setText('status','You '+act+'. '+res+'  Click anywhere to play again.');
+      renderDoors();
+    }
+  }
+
+  renderStats();
+  startGame();
+
+  function montyQuiz(answer) {
+    var btns = document.querySelectorAll('.quiz-btn');
+    btns.forEach(function(b) { b.disabled = true; });
+    var fb = document.getElementById('quizFeedback');
+    var ft = document.getElementById('quizFeedbackText');
+    if (answer === 'switch') {
+      btns.forEach(function(b) { if (b.textContent.indexOf('Switch') !== -1) b.classList.add('correct'); });
+      ft.textContent = '✓ Correct! Switching wins 2/3 of the time. Your original pick had a 1/3 chance — and that never changes. The host\'s action concentrates the remaining 2/3 probability onto the other door.';
+      fb.className = 'quiz-feedback correct';
+    } else if (answer === 'fifty') {
+      btns.forEach(function(b) { if (b.textContent.indexOf('50/50') !== -1) b.classList.add('incorrect'); else if (b.textContent.indexOf('Switch') !== -1) b.classList.add('reveal'); });
+      ft.textContent = '✗ This is the most common intuition — but it\'s wrong. Switching wins 2/3 of the time. The host\'s reveal isn\'t random; it carries information that shifts the odds.';
+      fb.className = 'quiz-feedback incorrect';
+    } else {
+      btns.forEach(function(b) { if (b.textContent.indexOf('Switch') !== -1) b.classList.add('reveal'); else if (b === document.querySelector('.quiz-btn:nth-child(' + ({stay:1,depends:4}[answer]) + ')')) b.classList.add('incorrect'); });
+      ft.textContent = '✗ Not quite. The answer doesn\'t depend on the host\'s motive — in the classic game the host always reveals a goat. Switching wins 2/3 of the time.';
+      fb.className = 'quiz-feedback incorrect';
+    }
+    fb.style.display = 'block';
+  }
+</script>
+</body>
+</html>

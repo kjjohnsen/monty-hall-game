@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>St. Petersburg Paradox - Probability Paradoxes</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .flip-sequence {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin: 1rem auto;
+      max-width: 700px;
+      min-height: 48px;
+      align-items: center;
+    }
+    .coin-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.85rem;
+      border: 2px solid;
+      transition: transform 0.2s, opacity 0.2s;
+      flex-shrink: 0;
+    }
+    .coin-badge.heads {
+      background: linear-gradient(135deg, #2a4a2a, #1a3a1a);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+    .coin-badge.tails {
+      background: linear-gradient(135deg, #4a2a2a, #3a1a1a);
+      border-color: var(--accent-red);
+      color: var(--accent-red);
+    }
+    .coin-badge.small {
+      width: 28px;
+      height: 28px;
+      font-size: 0.7rem;
+    }
+    .payout-display {
+      font-size: 2.8rem;
+      font-weight: 800;
+      color: var(--accent-gold);
+      text-align: center;
+      margin: 0.5rem 0 1rem;
+      min-height: 3.5rem;
+      text-shadow: 0 0 20px rgba(245, 166, 35, 0.3);
+    }
+    .payout-display.zero {
+      color: var(--text-dim);
+      font-size: 1.4rem;
+      text-shadow: none;
+    }
+    .chart-container {
+      width: 100%;
+      max-width: 650px;
+      margin: 1.5rem auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 10px;
+      padding: 1.2rem 1rem 0.8rem;
+    }
+    .chart-title {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0.8rem;
+      text-align: center;
+    }
+    .chart-svg {
+      width: 100%;
+      height: 200px;
+      display: block;
+    }
+    .chart-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+      padding: 0 4px;
+    }
+    .round-info {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      min-height: 1.2rem;
+    }
+    .controls { gap: 0.6rem; }
+    .sim-running {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">&larr; Back to Games</a>
+<h1>The St. Petersburg Paradox</h1>
+<p class="subtitle">A casino flips a coin until it lands tails, doubling the payout each time. How much would you logically be willing to pay to play it?</p>
+
+<div id="guessSection" class="guess-section" style="text-align: center; margin: 2rem 0;">
+  <h2>Before we simulate, how much would you pay to play?</h2>
+  <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap;">
+    <button class="btn-primary" onclick="makeGuess('$2')">$2</button>
+    <button class="btn-primary" onclick="makeGuess('$10')">$10</button>
+    <button class="btn-primary" onclick="makeGuess('$50')">$50</button>
+    <button class="btn-primary" onclick="makeGuess('Infinite')">Infinite</button>
+  </div>
+</div>
+
+<div id="experimentSection" style="display: none;">
+
+<div class="controls">
+  <button class="btn-primary" id="btnPlay1" onclick="playOneRound()">Play One Round</button>
+  <button class="btn-secondary" id="btnPlay100" onclick="playMany(100)">Play 100</button>
+  <button class="btn-secondary" id="btnPlay1000" onclick="playMany(1000)">Play 1,000</button>
+  <button class="btn-secondary" id="btnPlay1M" onclick="playMany(1000000)">Play 1M</button>
+  <button class="btn-secondary btn-small" onclick="resetAll()">Reset</button>
+</div>
+
+<div class="status" id="status">Click "Play One Round" to begin!</div>
+
+<div class="round-info" id="roundInfo"></div>
+<div class="flip-sequence" id="flipSeq"></div>
+<div class="payout-display zero" id="payoutDisplay">-</div>
+
+<div class="scoreboard">
+  <div class="score-box"><div class="label">Games</div><div class="value neutral" id="statGames">0</div></div>
+  <div class="score-box"><div class="label">Total Earnings</div><div class="value win" id="statTotal">$0</div></div>
+  <div class="score-box"><div class="label">Average Payout</div><div class="value neutral" id="statAvg">$0</div></div>
+  <div class="score-box"><div class="label">Best Round</div><div class="value neutral" id="statBest">$0</div></div>
+</div>
+
+<div class="chart-container" id="chartBox" style="display:none;">
+  <div class="chart-title">Running Average Payout</div>
+  <svg class="chart-svg" id="chartSvg" viewBox="0 0 600 200" preserveAspectRatio="none"></svg>
+  <div class="chart-labels">
+    <span id="chartXMin">Game 1</span>
+    <span id="chartYInfo" style="color:var(--accent-gold);"></span>
+    <span id="chartXMax"></span>
+  </div>
+</div>
+
+<details class="explanation">
+  <summary>How does this work?</summary>
+  <p>In the <strong>St. Petersburg game</strong>, you flip a fair coin repeatedly until it lands tails. If the first tails appears on flip <strong>n</strong>, you win <strong>$2<sup>n</sup></strong>.</p>
+  <p>The expected value of this game is <strong>infinite</strong>: each flip contributes $1 to the expected payout (probability 1/2<sup>n</sup> times payout 2<sup>n</sup> = $1), and there are infinitely many possible flips.</p>
+  <p>Yet most rounds pay very little &mdash; you get $2 half the time, $4 a quarter of the time, and so on. The <strong>paradox</strong> is that despite the infinite expected value, no rational person would pay a huge amount to play, because most of the expected value comes from astronomically rare events.</p>
+  <p>Watch the running average as you play: it trends upward over time, never settling on a fixed number. Occasionally a big win spikes the average, illustrating how rare outliers dominate the expectation.</p>
+</details>
+
+</div>
+
+<script src="shared.js"></script>
+<script>
+  var state = { phase: 'ready', flips: [], payout: 0, animating: false };
+  var stats = loadState('stpeteStats', { games: 0, totalEarnings: 0, maxPayout: 0, history: [] });
+  var userGuess = loadState('stpeteGuess', null);
+
+  function makeGuess(guess) {
+    userGuess = guess;
+    saveState('stpeteGuess', userGuess);
+    document.getElementById('guessSection').style.display = 'none';
+    document.getElementById('experimentSection').style.display = 'block';
+  }
+
+  function formatDollars(n) {
+    if (n >= 1e12) return '$' + (n / 1e12).toFixed(1) + 'T';
+    if (n >= 1e9) return '$' + (n / 1e9).toFixed(1) + 'B';
+    if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+    if (n >= 1e4) return '$' + fmtNum(Math.round(n));
+    if (n >= 100) return '$' + fmtNum(Math.round(n));
+    return '$' + n;
+  }
+
+  function playStPetersburg() {
+    var flips = [];
+    var n = 0;
+    do {
+      n++;
+      var isHeads = flipCoin();
+      flips.push(isHeads ? 'H' : 'T');
+    } while (flips[flips.length - 1] === 'H');
+    return { flips: flips, payout: Math.pow(2, n) };
+  }
+
+  function renderFlips(flips) {
+    var container = $('flipSeq');
+    container.innerHTML = '';
+    var useSmall = flips.length > 15;
+    flips.forEach(function(f) {
+      var badge = el('div', 'coin-badge ' + (f === 'H' ? 'heads' : 'tails') + (useSmall ? ' small' : ''), f);
+      container.appendChild(badge);
+    });
+  }
+
+  function updateScoreboard() {
+    setText('statGames', fmtNum(stats.games));
+    setText('statTotal', formatDollars(stats.totalEarnings));
+    setText('statAvg', stats.games > 0 ? formatDollars(Math.round(stats.totalEarnings / stats.games)) : '$0');
+    setText('statBest', formatDollars(stats.maxPayout));
+    saveState('stpeteStats', stats);
+  }
+
+  function recordRound(payout) {
+    stats.games++;
+    stats.totalEarnings += payout;
+    if (payout > stats.maxPayout) stats.maxPayout = payout;
+    stats.history.push(payout);
+    // Trim history if it gets very large to avoid localStorage issues
+    if (stats.history.length > 50000) {
+      // Keep summary: collapse first half into averaged chunks
+      var half = Math.floor(stats.history.length / 2);
+      var chunkSize = 10;
+      var compressed = [];
+      for (var i = 0; i < half; i += chunkSize) {
+        var chunk = stats.history.slice(i, Math.min(i + chunkSize, half));
+        compressed.push(Math.round(mean(chunk)));
+      }
+      stats.history = compressed.concat(stats.history.slice(half));
+    }
+  }
+
+  function playOneRound() {
+    if (state.animating) return;
+    var result = playStPetersburg();
+    state.flips = result.flips;
+    state.payout = result.payout;
+
+    // Animate flips
+    state.animating = true;
+    setButtonsEnabled(false);
+    var container = $('flipSeq');
+    container.innerHTML = '';
+    var payDisplay = $('payoutDisplay');
+    payDisplay.className = 'payout-display zero';
+    payDisplay.textContent = '...';
+    setText('status', 'Flipping...');
+    setText('roundInfo', '');
+
+    var i = 0;
+    var delay = state.flips.length > 20 ? 40 : (state.flips.length > 10 ? 80 : 150);
+
+    function showNext() {
+      if (i >= state.flips.length) {
+        // Done animating
+        recordRound(state.payout);
+        updateScoreboard();
+        renderChart();
+        payDisplay.className = 'payout-display';
+        payDisplay.textContent = formatDollars(state.payout);
+        var flipsCount = state.flips.length;
+        setText('status', flipsCount === 1 ? 'Tails on the first flip!' : 'Tails after ' + flipsCount + ' flips!');
+        setText('roundInfo', flipsCount + ' flip' + (flipsCount > 1 ? 's' : '') + ' \u2192 2^' + flipsCount + ' = ' + formatDollars(state.payout));
+        state.animating = false;
+        setButtonsEnabled(true);
+        return;
+      }
+      var f = state.flips[i];
+      var useSmall = state.flips.length > 15;
+      var badge = el('div', 'coin-badge ' + (f === 'H' ? 'heads' : 'tails') + (useSmall ? ' small' : ''), f);
+      badge.style.opacity = '0';
+      badge.style.transform = 'scale(0.5)';
+      container.appendChild(badge);
+      // Trigger animation
+      requestAnimationFrame(function() {
+        badge.style.opacity = '1';
+        badge.style.transform = 'scale(1)';
+      });
+      i++;
+      setTimeout(showNext, delay);
+    }
+    showNext();
+  }
+
+  function playMany(count) {
+    if (state.animating) return;
+    state.animating = true;
+    setButtonsEnabled(false);
+    $('flipSeq').innerHTML = '';
+    var payDisplay = $('payoutDisplay');
+    payDisplay.className = 'payout-display zero';
+    payDisplay.textContent = 'Simulating...';
+    setText('roundInfo', '');
+
+    var bestThisRun = 0;
+    var totalThisRun = 0;
+
+    var batchSize = count > 10000 ? 10000 : 200;
+
+    runSimulation(count, function() {
+      var result = playStPetersburg();
+      recordRound(result.payout);
+      totalThisRun += result.payout;
+      if (result.payout > bestThisRun) bestThisRun = result.payout;
+      return result.payout;
+    }, function(done) {
+      setText('status', 'Simulating... ' + fmtNum(done) + ' / ' + fmtNum(count));
+    }, function(results) {
+      updateScoreboard();
+      renderChart();
+      var avg = Math.round(totalThisRun / count);
+      payDisplay.className = 'payout-display';
+      payDisplay.textContent = formatDollars(totalThisRun);
+      setText('status', fmtNum(count) + ' rounds complete!');
+      setText('roundInfo', 'Batch total: ' + formatDollars(totalThisRun) + ' | Batch avg: ' + formatDollars(avg) + ' | Batch best: ' + formatDollars(bestThisRun));
+      state.animating = false;
+      setButtonsEnabled(true);
+    }, batchSize);
+  }
+
+  function setButtonsEnabled(enabled) {
+    var btns = [$('btnPlay1'), $('btnPlay100'), $('btnPlay1000'), $('btnPlay1M')];
+    btns.forEach(function(b) {
+      if (enabled) b.classList.remove('sim-running');
+      else b.classList.add('sim-running');
+    });
+  }
+
+  function renderChart() {
+    if (stats.history.length < 2) {
+      $('chartBox').style.display = 'none';
+      return;
+    }
+    $('chartBox').style.display = '';
+
+    var svg = $('chartSvg');
+    var W = 600, H = 200;
+    var pad = { top: 10, right: 10, bottom: 10, left: 10 };
+    var plotW = W - pad.left - pad.right;
+    var plotH = H - pad.top - pad.bottom;
+
+    // Compute running averages - sample if too many points
+    var hist = stats.history;
+    var n = hist.length;
+    var sampleRate = Math.max(1, Math.floor(n / 500));
+    var points = [];
+    var runningSum = 0;
+    for (var i = 0; i < n; i++) {
+      runningSum += hist[i];
+      if (i % sampleRate === 0 || i === n - 1) {
+        points.push({ x: i + 1, y: runningSum / (i + 1) });
+      }
+    }
+
+    // Determine Y scale (use log if range is large)
+    var yMin = Infinity, yMax = -Infinity;
+    points.forEach(function(p) {
+      if (p.y < yMin) yMin = p.y;
+      if (p.y > yMax) yMax = p.y;
+    });
+    if (yMin <= 0) yMin = 1;
+
+    var useLog = (yMax / yMin > 50);
+    var logMin, logMax;
+
+    function mapY(val) {
+      if (val <= 0) val = 1;
+      if (useLog) {
+        logMin = Math.log10(Math.max(yMin * 0.8, 1));
+        logMax = Math.log10(yMax * 1.2);
+        if (logMax <= logMin) logMax = logMin + 1;
+        var logVal = Math.log10(val);
+        var t = (logVal - logMin) / (logMax - logMin);
+        return pad.top + plotH * (1 - t);
+      } else {
+        var padded = yMax * 1.1;
+        var floor = 0;
+        return pad.top + plotH * (1 - (val - floor) / (padded - floor));
+      }
+    }
+
+    // Build polyline
+    var xScale = points.length > 1 ? plotW / (points[points.length - 1].x - points[0].x || 1) : plotW;
+    var polyPts = points.map(function(p) {
+      var px = pad.left + (p.x - points[0].x) * xScale;
+      var py = mapY(p.y);
+      return px.toFixed(1) + ',' + py.toFixed(1);
+    }).join(' ');
+
+    // Reference line at $2 (the median payout)
+    var refY2 = mapY(2);
+
+    // Grid lines
+    var gridLines = '';
+    if (useLog) {
+      logMin = Math.log10(Math.max(yMin * 0.8, 1));
+      logMax = Math.log10(yMax * 1.2);
+      for (var p = Math.ceil(logMin); p <= Math.floor(logMax); p++) {
+        var gy = mapY(Math.pow(10, p));
+        gridLines += '<line x1="' + pad.left + '" y1="' + gy + '" x2="' + (W - pad.right) + '" y2="' + gy + '" stroke="#333" stroke-width="0.5" stroke-dasharray="4,4"/>';
+        gridLines += '<text x="' + (pad.left + 2) + '" y="' + (gy - 3) + '" fill="#666" font-size="9">$' + fmtNum(Math.pow(10, p)) + '</text>';
+      }
+    } else {
+      var steps = [yMax * 0.25, yMax * 0.5, yMax * 0.75];
+      steps.forEach(function(v) {
+        var gy = mapY(v);
+        gridLines += '<line x1="' + pad.left + '" y1="' + gy + '" x2="' + (W - pad.right) + '" y2="' + gy + '" stroke="#333" stroke-width="0.5" stroke-dasharray="4,4"/>';
+        gridLines += '<text x="' + (pad.left + 2) + '" y="' + (gy - 3) + '" fill="#666" font-size="9">' + formatDollars(Math.round(v)) + '</text>';
+      });
+    }
+
+    // Gradient definition
+    svg.innerHTML = '<defs>' +
+      '<linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">' +
+        '<stop offset="0%" stop-color="#e94560"/>' +
+        '<stop offset="100%" stop-color="#f5a623"/>' +
+      '</linearGradient>' +
+      '<linearGradient id="fillGrad" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="#f5a623" stop-opacity="0.15"/>' +
+        '<stop offset="100%" stop-color="#e94560" stop-opacity="0.02"/>' +
+      '</linearGradient>' +
+    '</defs>' +
+    gridLines +
+    // Area fill under the line
+    '<polygon points="' + (pad.left).toFixed(1) + ',' + (pad.top + plotH) + ' ' + polyPts + ' ' + (pad.left + (points[points.length - 1].x - points[0].x) * xScale).toFixed(1) + ',' + (pad.top + plotH) + '" fill="url(#fillGrad)"/>' +
+    // The main line
+    '<polyline points="' + polyPts + '" fill="none" stroke="url(#lineGrad)" stroke-width="2" stroke-linejoin="round"/>' +
+    // $2 reference line
+    (refY2 > pad.top && refY2 < pad.top + plotH ?
+      '<line x1="' + pad.left + '" y1="' + refY2 + '" x2="' + (W - pad.right) + '" y2="' + refY2 + '" stroke="#4caf50" stroke-width="0.8" stroke-dasharray="6,3" opacity="0.6"/>' +
+      '<text x="' + (W - pad.right - 2) + '" y="' + (refY2 - 3) + '" fill="#4caf50" font-size="8" text-anchor="end" opacity="0.7">$2 median</text>'
+      : '') +
+    // End point dot
+    '<circle cx="' + (pad.left + (points[points.length - 1].x - points[0].x) * xScale).toFixed(1) + '" cy="' + mapY(points[points.length - 1].y).toFixed(1) + '" r="3" fill="#f5a623"/>';
+
+    setText('chartXMin', 'Game 1');
+    setText('chartXMax', 'Game ' + fmtNum(n));
+    setText('chartYInfo', 'Avg: ' + formatDollars(Math.round(stats.totalEarnings / stats.games)) + (useLog ? ' (log scale)' : ''));
+  }
+
+  function resetAll() {
+    stats = { games: 0, totalEarnings: 0, maxPayout: 0, history: [] };
+    saveState('stpeteStats', stats);
+    userGuess = null;
+    saveState('stpeteGuess', null);
+    document.getElementById('guessSection').style.display = 'block';
+    document.getElementById('experimentSection').style.display = 'none';
+    updateScoreboard();
+    $('flipSeq').innerHTML = '';
+    var payDisplay = $('payoutDisplay');
+    payDisplay.className = 'payout-display zero';
+    payDisplay.textContent = '-';
+    setText('status', 'Click "Play One Round" to begin!');
+    setText('roundInfo', '');
+    $('chartBox').style.display = 'none';
+  }
+
+  // Initialize
+  if (userGuess || stats.games > 0) {
+    document.getElementById('guessSection').style.display = 'none';
+    document.getElementById('experimentSection').style.display = 'block';
+  }
+  updateScoreboard();
+  renderChart();
+</script>
+</body>
+</html>

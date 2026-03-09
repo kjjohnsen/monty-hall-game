@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sleeping Beauty Problem - Probability Paradoxes</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    /* Coin */
+    .coin {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: 800;
+      margin: 0.5rem auto;
+      transition: transform 0.5s, background 0.3s, border-color 0.3s;
+      user-select: none;
+    }
+    .coin.heads {
+      background: linear-gradient(135deg, #2a6e2a, #1a4a1a);
+      border: 3px solid var(--accent-green);
+      color: var(--accent-green);
+    }
+    .coin.tails {
+      background: linear-gradient(135deg, #6e2a2a, #4a1a1a);
+      border: 3px solid var(--accent-red);
+      color: var(--accent-red);
+    }
+    .coin.unknown {
+      background: linear-gradient(135deg, #3a3a5e, #2a2a44);
+      border: 3px solid var(--border-mid);
+      color: var(--text-dim);
+    }
+    .coin.spinning {
+      animation: spin-coin 0.6s ease-out;
+    }
+    @keyframes spin-coin {
+      0% { transform: rotateY(0deg) scale(0.8); }
+      50% { transform: rotateY(540deg) scale(1.1); }
+      100% { transform: rotateY(720deg) scale(1); }
+    }
+
+    /* Timeline */
+    .timeline {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin: 1.2rem auto;
+      max-width: 520px;
+      width: 100%;
+      position: relative;
+    }
+    .timeline-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      z-index: 1;
+      min-width: 80px;
+    }
+    .timeline-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      border: 2px solid var(--border-mid);
+      background: var(--bg-card);
+      color: var(--text-dim);
+      transition: all 0.3s;
+    }
+    .timeline-dot.active {
+      border-color: var(--accent-gold);
+      background: rgba(245, 166, 35, 0.15);
+      color: var(--accent-gold);
+      box-shadow: 0 0 12px rgba(245, 166, 35, 0.3);
+    }
+    .timeline-dot.waking {
+      border-color: var(--accent-green);
+      background: rgba(76, 175, 80, 0.15);
+      color: var(--accent-green);
+      box-shadow: 0 0 12px rgba(76, 175, 80, 0.3);
+    }
+    .timeline-dot.skipped {
+      border-color: var(--border-dark);
+      background: var(--bg-dark);
+      color: #444;
+    }
+    .timeline-day {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .timeline-day.active { color: var(--accent-gold); font-weight: 600; }
+    .timeline-day.waking { color: var(--accent-green); font-weight: 600; }
+    .timeline-info {
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      min-height: 1rem;
+    }
+    .timeline-connector {
+      width: 50px;
+      height: 2px;
+      background: var(--border-mid);
+      flex-shrink: 0;
+      align-self: center;
+      margin-bottom: 1.4rem;
+    }
+    .timeline-connector.active {
+      background: var(--accent-gold);
+      box-shadow: 0 0 6px rgba(245, 166, 35, 0.3);
+    }
+
+    /* Position cards */
+    .positions {
+      display: flex;
+      gap: 1.2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 1rem 0;
+      width: 100%;
+      max-width: 650px;
+    }
+    .position-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-dark);
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+      flex: 1;
+      min-width: 240px;
+      max-width: 300px;
+      text-align: center;
+    }
+    .position-card.halfer { border-left: 3px solid var(--accent-gold); }
+    .position-card.thirder { border-left: 3px solid var(--accent-green); }
+    .position-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+    .position-card.halfer .position-name { color: var(--accent-gold); }
+    .position-card.thirder .position-name { color: var(--accent-green); }
+    .position-claim {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-bottom: 0.6rem;
+      line-height: 1.4;
+    }
+    .position-expected {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-bottom: 0.2rem;
+    }
+    .position-observed {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin: 0.2rem 0;
+    }
+    .position-card.halfer .position-observed { color: var(--accent-gold); }
+    .position-card.thirder .position-observed { color: var(--accent-green); }
+    .position-detail {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Wakings history */
+    .wakings-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      justify-content: center;
+      margin: 0.5rem auto;
+      max-width: 600px;
+    }
+    .waking-pip {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      transition: background 0.2s;
+    }
+    .waking-pip.heads-waking { background: var(--accent-green); }
+    .waking-pip.tails-waking { background: var(--accent-red); }
+
+    .pip-legend {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin: 0.3rem 0;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+    .pip-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .pip-legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    @media (max-width: 500px) {
+      .coin { width: 60px; height: 60px; font-size: 1.5rem; }
+      .timeline-node { min-width: 60px; }
+      .timeline-dot { width: 28px; height: 28px; font-size: 0.85rem; }
+      .timeline-connector { width: 30px; }
+      .position-card { min-width: 180px; padding: 0.8rem; }
+      .position-observed { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">&larr; Back to Games</a>
+<h1>The Sleeping Beauty Problem</h1>
+<p class="subtitle">Sleeping Beauty is woken up once if a coin is heads, and twice if it's tails, with her memory erased in between. When she wakes, what is her subjective probability that the coin landed heads? 1/2 or 1/3?</p>
+
+<div id="guessSection" class="guess-section" style="text-align: center; margin: 2rem 0;">
+  <h2>Before we simulate, what is your intuition?</h2>
+  <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;">
+    <button class="btn-primary" onclick="makeGuess('1/2')">1/2 (Halfer)</button>
+    <button class="btn-primary" onclick="makeGuess('1/3')">1/3 (Thirder)</button>
+  </div>
+</div>
+
+<div id="experimentSection" style="display: none;">
+
+<div class="controls">
+  <button class="btn-primary" id="btnRun" onclick="runExperiment()">Run Experiment</button>
+  <button class="btn-secondary" id="btnBulk" onclick="runBulk()">Run 1,000 Experiments</button>
+  <button class="btn-secondary btn-small" onclick="resetStats()">Reset</button>
+</div>
+
+<div class="status" id="status">Click "Run Experiment" to flip the coin.</div>
+
+<div class="coin unknown" id="coin">?</div>
+
+<div class="timeline" id="timeline">
+  <div class="timeline-node">
+    <div class="timeline-dot" id="tlSunday">S</div>
+    <div class="timeline-day" id="tlSundayLabel">Sunday</div>
+    <div class="timeline-info">Coin flip</div>
+  </div>
+  <div class="timeline-connector" id="conn1"></div>
+  <div class="timeline-node">
+    <div class="timeline-dot" id="tlMonday">M</div>
+    <div class="timeline-day" id="tlMondayLabel">Monday</div>
+    <div class="timeline-info" id="monInfo">Waking?</div>
+  </div>
+  <div class="timeline-connector" id="conn2"></div>
+  <div class="timeline-node">
+    <div class="timeline-dot" id="tlTuesday">T</div>
+    <div class="timeline-day" id="tlTuesdayLabel">Tuesday</div>
+    <div class="timeline-info" id="tueInfo">Waking?</div>
+  </div>
+</div>
+
+<div class="positions">
+  <div class="position-card halfer">
+    <div class="position-name">Halfer Position</div>
+    <div class="position-claim">P(Heads | Waking) = 1/2. The coin is fair. Waking gives no new information.</div>
+    <div class="position-expected">Expected: 50.0%</div>
+    <div class="position-observed" id="halferObs">-</div>
+    <div class="position-detail" id="halferDetail">heads experiments / total experiments</div>
+  </div>
+  <div class="position-card thirder">
+    <div class="position-name">Thirder Position</div>
+    <div class="position-claim">P(Heads | Waking) = 1/3. There are more waking-moments on tails.</div>
+    <div class="position-expected">Expected: 33.3%</div>
+    <div class="position-observed" id="thirderObs">-</div>
+    <div class="position-detail" id="thirderDetail">heads wakings / total wakings</div>
+  </div>
+</div>
+
+<div class="scoreboard">
+  <div class="score-box"><div class="label">Experiments</div><div class="value neutral" id="totalExp">0</div></div>
+  <div class="score-box"><div class="label">Heads</div><div class="value win" id="headsExp">0</div></div>
+  <div class="score-box"><div class="label">Total Wakings</div><div class="value neutral" id="totalWak">0</div></div>
+  <div class="score-box"><div class="label">Heads Wakings</div><div class="value win" id="headsWak">0</div></div>
+</div>
+
+<div class="pip-legend">
+  <div class="pip-legend-item"><span class="pip-legend-dot" style="background: var(--accent-green);"></span> Heads waking</div>
+  <div class="pip-legend-item"><span class="pip-legend-dot" style="background: var(--accent-red);"></span> Tails waking</div>
+</div>
+<div class="wakings-strip" id="wakingsStrip"></div>
+
+<details class="explanation">
+  <summary>How does this work?</summary>
+  <p>On Sunday, a fair coin is flipped. Sleeping Beauty is put to sleep.</p>
+  <p>If <strong>Heads</strong>: she is woken on Monday, interviewed, then the experiment ends.</p>
+  <p>If <strong>Tails</strong>: she is woken on Monday, interviewed, her memory is erased, then she is woken again on Tuesday and interviewed again. She cannot tell which day it is.</p>
+  <p>Each time she wakes, she is asked: <strong>"What is your credence that the coin landed Heads?"</strong></p>
+  <p>The <strong>Halfer</strong> says 1/2: the coin is fair, and waking provides no new evidence. Measured as: heads experiments / total experiments.</p>
+  <p>The <strong>Thirder</strong> says 1/3: there are three equally likely waking-states (Heads-Monday, Tails-Monday, Tails-Tuesday), and only one is heads. Measured as: heads wakings / total wakings.</p>
+  <p>Both positions are defensible. The disagreement is about what "credence" means -- leading to one of the most debated problems in philosophy of probability.</p>
+</details>
+
+</div>
+
+<script src="shared.js"></script>
+<script>
+  var MAX_PIPS = 300;
+
+  var state = { phase: 'ready', currentCoin: null, wakings: [] };
+  var stats = loadState('sleepingStats', {
+    experiments: 0,
+    headsExp: 0,
+    totalWakings: 0,
+    headsWakings: 0
+  });
+
+  // Track recent wakings for the pip strip (not persisted, or limited)
+  var recentWakings = loadState('sleepingRecent', []);
+  var userGuess = loadState('sleepingGuess', null);
+
+  function makeGuess(guess) {
+    userGuess = guess;
+    saveState('sleepingGuess', userGuess);
+    document.getElementById('guessSection').style.display = 'none';
+    document.getElementById('experimentSection').style.display = 'block';
+  }
+
+  function addWaking(isHeads) {
+    recentWakings.push(isHeads ? 'h' : 't');
+    if (recentWakings.length > MAX_PIPS) {
+      recentWakings = recentWakings.slice(recentWakings.length - MAX_PIPS);
+    }
+  }
+
+  function saveAll() {
+    saveState('sleepingStats', stats);
+    saveState('sleepingRecent', recentWakings);
+  }
+
+  function renderStats() {
+    setText('totalExp', fmtNum(stats.experiments));
+    setText('headsExp', fmtNum(stats.headsExp));
+    setText('totalWak', fmtNum(stats.totalWakings));
+    setText('headsWak', fmtNum(stats.headsWakings));
+
+    // Halfer: headsExp / experiments
+    if (stats.experiments > 0) {
+      var halferRatio = stats.headsExp / stats.experiments;
+      setText('halferObs', (halferRatio * 100).toFixed(1) + '%');
+      setText('halferDetail', fmtNum(stats.headsExp) + ' / ' + fmtNum(stats.experiments) + ' experiments');
+    } else {
+      setText('halferObs', '-');
+      setText('halferDetail', 'heads experiments / total experiments');
+    }
+
+    // Thirder: headsWakings / totalWakings
+    if (stats.totalWakings > 0) {
+      var thirderRatio = stats.headsWakings / stats.totalWakings;
+      setText('thirderObs', (thirderRatio * 100).toFixed(1) + '%');
+      setText('thirderDetail', fmtNum(stats.headsWakings) + ' / ' + fmtNum(stats.totalWakings) + ' wakings');
+    } else {
+      setText('thirderObs', '-');
+      setText('thirderDetail', 'heads wakings / total wakings');
+    }
+  }
+
+  function renderPips() {
+    var strip = $('wakingsStrip');
+    strip.innerHTML = '';
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < recentWakings.length; i++) {
+      var pip = document.createElement('div');
+      pip.className = 'waking-pip ' + (recentWakings[i] === 'h' ? 'heads-waking' : 'tails-waking');
+      frag.appendChild(pip);
+    }
+    strip.appendChild(frag);
+  }
+
+  function resetTimeline() {
+    $('tlSunday').className = 'timeline-dot';
+    $('tlMonday').className = 'timeline-dot';
+    $('tlTuesday').className = 'timeline-dot';
+    $('tlSundayLabel').className = 'timeline-day';
+    $('tlMondayLabel').className = 'timeline-day';
+    $('tlTuesdayLabel').className = 'timeline-day';
+    $('conn1').className = 'timeline-connector';
+    $('conn2').className = 'timeline-connector';
+    setText('monInfo', 'Waking?');
+    setText('tueInfo', 'Waking?');
+  }
+
+  function showCoin(result) {
+    var coinEl = $('coin');
+    if (result === null) {
+      coinEl.className = 'coin unknown';
+      coinEl.textContent = '?';
+    } else if (result) {
+      coinEl.className = 'coin heads spinning';
+      coinEl.textContent = 'H';
+    } else {
+      coinEl.className = 'coin tails spinning';
+      coinEl.textContent = 'T';
+    }
+  }
+
+  function animateTimeline(isHeads) {
+    resetTimeline();
+
+    // Sunday: coin flip
+    $('tlSunday').classList.add('active');
+    $('tlSundayLabel').classList.add('active');
+
+    // Monday: always a waking
+    $('conn1').classList.add('active');
+    $('tlMonday').classList.add('waking');
+    $('tlMondayLabel').classList.add('waking');
+    setText('monInfo', 'Waking!');
+
+    if (isHeads) {
+      // Tuesday: skipped
+      $('tlTuesday').classList.add('skipped');
+      setText('tueInfo', 'Skipped');
+    } else {
+      // Tuesday: also a waking
+      $('conn2').classList.add('active');
+      $('tlTuesday').classList.add('waking');
+      $('tlTuesdayLabel').classList.add('waking');
+      setText('tueInfo', 'Waking!');
+    }
+  }
+
+  function recordExperiment(isHeads) {
+    stats.experiments++;
+    if (isHeads) {
+      stats.headsExp++;
+      stats.totalWakings += 1;
+      stats.headsWakings += 1;
+      addWaking(true);
+    } else {
+      stats.totalWakings += 2;
+      addWaking(false);
+      addWaking(false);
+    }
+  }
+
+  function runExperiment() {
+    var isHeads = flipCoin();
+    state.currentCoin = isHeads;
+    state.phase = 'done';
+
+    showCoin(isHeads);
+    animateTimeline(isHeads);
+    recordExperiment(isHeads);
+    saveAll();
+    renderStats();
+    renderPips();
+
+    if (isHeads) {
+      setText('status', 'Heads! 1 waking on Monday. Beauty sees no difference either way.');
+    } else {
+      setText('status', 'Tails! 2 wakings: Monday and Tuesday. Memory erased between them.');
+    }
+  }
+
+  function runBulk() {
+    var btn = $('btnBulk');
+    var btnRun = $('btnRun');
+    btn.disabled = true;
+    btnRun.disabled = true;
+    btn.textContent = 'Running...';
+
+    resetTimeline();
+    showCoin(null);
+
+    var count = 1000;
+    var batchSize = 100;
+    var done = 0;
+
+    function batch() {
+      var end = Math.min(done + batchSize, count);
+      for (var i = done; i < end; i++) {
+        var isHeads = flipCoin();
+        recordExperiment(isHeads);
+      }
+      done = end;
+      setText('status', 'Running... ' + fmtNum(done) + ' / ' + fmtNum(count));
+
+      if (done < count) {
+        setTimeout(batch, 0);
+      } else {
+        saveAll();
+        renderStats();
+        renderPips();
+        btn.disabled = false;
+        btnRun.disabled = false;
+        btn.textContent = 'Run 1,000 Experiments';
+
+        var halferR = stats.experiments > 0 ? (stats.headsExp / stats.experiments * 100).toFixed(1) : '?';
+        var thirderR = stats.totalWakings > 0 ? (stats.headsWakings / stats.totalWakings * 100).toFixed(1) : '?';
+        setText('status',
+          'Done! ' + fmtNum(count) + ' experiments complete. Halfer sees ' + halferR + '%, Thirder sees ' + thirderR + '%.'
+        );
+      }
+    }
+    batch();
+  }
+
+  function resetStats() {
+    stats = { experiments: 0, headsExp: 0, totalWakings: 0, headsWakings: 0 };
+    recentWakings = [];
+    userGuess = null;
+    saveState('sleepingGuess', null);
+    document.getElementById('guessSection').style.display = 'block';
+    document.getElementById('experimentSection').style.display = 'none';
+    saveAll();
+    renderStats();
+    renderPips();
+    resetTimeline();
+    showCoin(null);
+    state = { phase: 'ready', currentCoin: null, wakings: [] };
+    setText('status', 'Click "Run Experiment" to flip the coin.');
+  }
+
+  // Initialize
+  if (userGuess || stats.experiments > 0) {
+    document.getElementById('guessSection').style.display = 'none';
+    document.getElementById('experimentSection').style.display = 'block';
+  }
+  renderStats();
+  renderPips();
+</script>
+</body>
+</html>

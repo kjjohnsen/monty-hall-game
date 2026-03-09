@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bertrand's Box Paradox - Probability Paradoxes</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .boxes-container {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .box {
+      width: 130px;
+      height: 110px;
+      background: linear-gradient(170deg, #2a2a4e, #1a1a36);
+      border: 2px solid var(--border-mid);
+      border-radius: 10px;
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 12px;
+      padding-bottom: 14px;
+      transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+    }
+    .box .box-label {
+      position: absolute;
+      top: 6px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .box .box-lid {
+      position: absolute;
+      top: 0;
+      left: -1px;
+      right: -1px;
+      height: 28px;
+      background: linear-gradient(170deg, #3a3a5e, #2a2a46);
+      border-radius: 10px 10px 0 0;
+      border-bottom: 1px solid var(--border-mid);
+      transition: transform 0.4s ease, opacity 0.4s ease;
+      transform-origin: top center;
+      z-index: 2;
+    }
+    .box .box-lid .lid-label {
+      position: absolute;
+      bottom: 4px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .box.revealed .box-lid {
+      transform: perspective(200px) rotateX(-80deg);
+      opacity: 0.5;
+    }
+    .box.selected {
+      border-color: var(--accent-red);
+      box-shadow: 0 0 20px rgba(233, 69, 96, 0.4);
+      transform: translateY(-4px);
+    }
+    .box.dimmed {
+      opacity: 0.35;
+    }
+    .coin {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      position: relative;
+      z-index: 1;
+      transition: transform 0.5s ease, box-shadow 0.3s, opacity 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: rgba(0,0,0,0.4);
+    }
+    .coin.gold {
+      background: radial-gradient(circle at 35% 35%, #f5d67b, #c9a84c, #a8862a);
+      box-shadow: 0 2px 8px rgba(201, 168, 76, 0.5);
+    }
+    .coin.silver {
+      background: radial-gradient(circle at 35% 35%, #d0d0d0, #aaaaaa, #888888);
+      box-shadow: 0 2px 8px rgba(170, 170, 170, 0.4);
+    }
+    .coin.hidden {
+      background: #333;
+      box-shadow: none;
+      color: transparent;
+    }
+    .coin.drawn {
+      transform: translateY(-50px) scale(1.4);
+      z-index: 10;
+    }
+    .coin.drawn.gold {
+      box-shadow: 0 0 20px rgba(201, 168, 76, 0.7);
+    }
+    .coin.drawn.silver {
+      box-shadow: 0 0 20px rgba(170, 170, 170, 0.6);
+    }
+    .coin.other-revealed {
+      animation: coinReveal 0.5s ease-out;
+    }
+    @keyframes coinReveal {
+      0% { transform: scale(0.5); opacity: 0; }
+      60% { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .guess-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin: 1rem 0;
+    }
+    .guess-btn {
+      padding: 0.6rem 1.8rem;
+      border: 2px solid var(--border-mid);
+      border-radius: 8px;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .guess-btn:hover {
+      transform: translateY(-2px);
+    }
+    .guess-btn.gold-guess {
+      border-color: #c9a84c;
+      color: #c9a84c;
+    }
+    .guess-btn.gold-guess:hover {
+      background: rgba(201, 168, 76, 0.15);
+      box-shadow: 0 4px 12px rgba(201, 168, 76, 0.3);
+    }
+    .guess-btn.silver-guess {
+      border-color: #aaa;
+      color: #aaa;
+    }
+    .guess-btn.silver-guess:hover {
+      background: rgba(170, 170, 170, 0.1);
+      box-shadow: 0 4px 12px rgba(170, 170, 170, 0.2);
+    }
+
+    .number-line {
+      width: 100%;
+      max-width: 400px;
+      margin: 1rem auto;
+      position: relative;
+      height: 50px;
+    }
+    .number-line-track {
+      position: absolute;
+      top: 16px;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: var(--border-dark);
+      border-radius: 3px;
+    }
+    .number-line-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent-red), var(--accent-gold));
+      transition: width 0.5s ease;
+    }
+    .number-line-marker {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      text-align: center;
+      font-size: 0.6rem;
+      color: var(--text-dim);
+    }
+    .number-line-marker .marker-line {
+      width: 1px;
+      height: 10px;
+      background: var(--text-dim);
+      margin: 2px auto 0;
+    }
+    .number-line-indicator {
+      position: absolute;
+      top: 6px;
+      transform: translateX(-50%);
+      width: 14px;
+      height: 14px;
+      background: var(--accent-gold);
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 0 8px rgba(245, 166, 35, 0.6);
+      transition: left 0.5s ease;
+      z-index: 3;
+    }
+    .number-line-indicator .indicator-label {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--accent-gold);
+      white-space: nowrap;
+    }
+    .number-line-labels {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.6rem;
+      color: var(--text-dim);
+    }
+
+    .silver-skip {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      margin: 0.5rem 0;
+      font-style: italic;
+    }
+
+    .result-flash {
+      animation: flashResult 0.4s ease-out;
+    }
+    @keyframes flashResult {
+      0% { transform: scale(0.8); opacity: 0; }
+      60% { transform: scale(1.05); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .auto-progress {
+      width: 100%;
+      max-width: 350px;
+      height: 5px;
+      background: var(--border-dark);
+      border-radius: 3px;
+      margin: 0.5rem auto;
+      overflow: hidden;
+      display: none;
+    }
+    .auto-progress-fill {
+      height: 100%;
+      background: var(--accent-red);
+      border-radius: 3px;
+      transition: width 0.05s;
+      width: 0;
+    }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">&larr; Back to Games</a>
+<h1>Bertrand's Box Paradox</h1>
+<p class="subtitle">Three boxes — Gold/Gold, Silver/Silver, Gold/Silver. You draw a gold coin from a random box. What are the odds the other coin is also gold?</p>
+
+<div class="quiz-panel" id="quizPanel">
+  <h2>Before you play — what's your gut?</h2>
+  <p class="quiz-question">
+    Three boxes: Box 1 has two gold coins, Box 2 has two silver coins, Box 3 has one gold and one silver. You pick a box at random and draw one coin without looking — it's gold. You don't know which box you're holding.<br><br>
+    What is the probability that the <em>remaining coin in the same box</em> is also gold?
+  </p>
+  <div class="quiz-options">
+    <button class="quiz-btn" onclick="bertQuiz('a')">1/3 — one out of three boxes has two gold coins</button>
+    <button class="quiz-btn" onclick="bertQuiz('b')">1/2 — it must be either the Gold/Gold or Gold/Silver box</button>
+    <button class="quiz-btn" onclick="bertQuiz('c')">2/3 — drawing gold shifts the probability toward the Gold/Gold box</button>
+    <button class="quiz-btn" onclick="bertQuiz('d')">Impossible to say without knowing which box you picked</button>
+  </div>
+  <div class="quiz-feedback" id="quizFeedback">
+    <span id="quizFeedbackText"></span><br>
+    <button class="quiz-continue" onclick="document.getElementById('quizPanel').style.display='none'; document.getElementById('gameSection').style.display='block';">Play and watch it converge &rarr;</button>
+  </div>
+</div>
+
+<div id="gameSection" style="display:none;">
+<div class="status" id="status">Three boxes, shuffled. Click a box to pick it!</div>
+
+<div class="game-area" id="gameArea" style="flex-direction:column; align-items:center;">
+  <div class="boxes-container" id="boxesContainer"></div>
+  <div class="guess-buttons" id="guessButtons" style="display:none;">
+    <button class="guess-btn gold-guess" onclick="makeGuess('gold')">Other is Gold</button>
+    <button class="guess-btn silver-guess" onclick="makeGuess('silver')">Other is Silver</button>
+  </div>
+  <div class="silver-skip" id="silverSkip" style="display:none;"></div>
+</div>
+
+<div class="controls">
+  <button class="btn-secondary" id="btnAuto" onclick="autoRun()">Auto-Run 500</button>
+  <button class="btn-secondary btn-small" onclick="resetAllStats()">Reset Stats</button>
+</div>
+
+<div class="scoreboard">
+  <div class="score-box">
+    <div class="label">Gold Draws</div>
+    <div class="value neutral" id="goldDraws">0</div>
+  </div>
+  <div class="score-box">
+    <div class="label">Other was Gold</div>
+    <div class="value win" id="otherGold">0</div>
+  </div>
+  <div class="score-box">
+    <div class="label">Observed Rate</div>
+    <div class="value" id="observedRate" style="color:var(--accent-gold)">-</div>
+  </div>
+  <div class="score-box">
+    <div class="label">Expected</div>
+    <div class="value" id="expectedRate" style="color:var(--text-dim)">66.7%</div>
+  </div>
+</div>
+
+<div class="number-line" id="numberLine">
+  <div class="number-line-track">
+    <div class="number-line-fill" id="nlFill" style="width:0"></div>
+  </div>
+  <div class="number-line-marker" style="left:50%;">
+    <span>1/2</span>
+    <div class="marker-line"></div>
+  </div>
+  <div class="number-line-marker" style="left:66.7%;">
+    <span>2/3</span>
+    <div class="marker-line"></div>
+  </div>
+  <div class="number-line-indicator" id="nlIndicator" style="left:0; display:none;">
+    <span class="indicator-label" id="nlLabel">-</span>
+  </div>
+  <div class="number-line-labels">
+    <span>0%</span>
+    <span>100%</span>
+  </div>
+</div>
+
+<div class="auto-progress" id="autoProgress">
+  <div class="auto-progress-fill" id="autoProgressFill"></div>
+</div>
+
+<details class="explanation">
+  <summary>How does this work?</summary>
+  <p>There are three boxes: one has <strong>two gold coins</strong>, one has <strong>two silver coins</strong>, and one has <strong>one gold and one silver</strong>.</p>
+  <p>You draw a coin at random. If it's gold, what's the probability the <em>other</em> coin in the same box is also gold?</p>
+  <p>Most people say <strong>1/2</strong> -- reasoning there are two boxes with gold (the GG box and the GS box), so it's 50-50. But the answer is actually <strong>2/3</strong>.</p>
+  <p>The key insight: there are <strong>3 gold coins total</strong>. Two of them are in the Gold/Gold box, and only one is in the Gold/Silver box. So given you drew a gold coin, 2 out of 3 times you drew from the Gold/Gold box -- meaning the other coin is gold.</p>
+</details>
+</div><!-- end gameSection -->
+
+<script src="shared.js"></script>
+<script>
+  function bertQuiz(answer) {
+    var btns = document.querySelectorAll('.quiz-btn');
+    btns.forEach(function(b) { b.disabled = true; });
+    var fb = document.getElementById('quizFeedback');
+    var ft = document.getElementById('quizFeedbackText');
+    if (answer === 'c') {
+      btns[2].classList.add('correct');
+      ft.textContent = '✓ Correct! The answer is 2/3. There are 3 gold coins total — 2 in the GG box, 1 in the GS box. Given you drew gold, you\'re twice as likely to be holding from the GG box. Play to watch it converge!';
+      fb.className = 'quiz-feedback correct';
+    } else if (answer === 'b') {
+      btns[1].classList.add('incorrect'); btns[2].classList.add('reveal');
+      ft.textContent = '✗ This is the most common wrong answer! The flaw: you didn\'t just pick a box — you picked a gold coin. There are 3 gold coins, and 2 of them belong to the GG box. So the probability is 2/3, not 1/2.';
+      fb.className = 'quiz-feedback incorrect';
+    } else if (answer === 'a') {
+      btns[0].classList.add('incorrect'); btns[2].classList.add('reveal');
+      ft.textContent = '✗ Not quite. 1/3 would be right if you were just picking a random box. But drawing gold gives you information — it rules out the SS box entirely and weights toward the GG box. The answer is 2/3.';
+      fb.className = 'quiz-feedback incorrect';
+    } else {
+      btns[3].classList.add('incorrect'); btns[2].classList.add('reveal');
+      ft.textContent = '✗ Actually, you can calculate it precisely using the gold coin as evidence. Three gold coins exist: two in GG, one in GS. Given you drew gold, you\'re 2x more likely to be in GG. The answer is 2/3.';
+      fb.className = 'quiz-feedback incorrect';
+    }
+    fb.style.display = 'block';
+  }
+
+  var BOXES = [['gold','gold'], ['silver','silver'], ['gold','silver']];
+  var BOX_LABELS = ['Gold / Gold', 'Silver / Silver', 'Gold / Silver'];
+  
+  var state = { phase: 'ready', boxIdx: -1, coinIdx: -1, otherCoin: null, mapping: [0, 1, 2] };
+  var stats = loadState('bertrandStats', { goldDraws: 0, otherGold: 0 });
+
+  function renderBoxes() {
+    var container = $('boxesContainer');
+    container.innerHTML = '';
+
+    for (var b = 0; b < 3; b++) {
+      var box = el('div', 'box');
+      box.id = 'box-' + b;
+      
+      // Game auto-draws, so boxes are not manually clickable.
+
+      var lid = el('div', 'box-lid');
+      var lidLabel = el('span', 'lid-label', 'Box ' + (b + 1));
+      lid.appendChild(lidLabel);
+      box.appendChild(lid);
+
+      var label = el('div', 'box-label', '');
+      label.style.top = 'auto';
+      label.style.bottom = '-22px';
+      label.style.fontSize = '0.6rem';
+      label.id = 'label-' + b;
+      box.appendChild(label);
+
+      var actualBoxContent = BOXES[state.mapping[b]];
+
+      for (var c = 0; c < 2; c++) {
+        var coinType = actualBoxContent[c];
+        var coin = el('div', 'coin');
+        coin.id = 'coin-' + b + '-' + c;
+
+        if (state.phase === 'ready') {
+          coin.classList.add('hidden');
+          coin.textContent = '?';
+        } else if (state.phase === 'drawn' || state.phase === 'guessing') {
+          if (b === state.boxIdx && c === state.coinIdx) {
+            coin.classList.add(coinType);
+            coin.classList.add('drawn');
+            coin.textContent = coinType === 'gold' ? 'G' : 'S';
+          } else if (b === state.boxIdx && c !== state.coinIdx) {
+            coin.classList.add('hidden');
+            coin.textContent = '?';
+          } else {
+            coin.classList.add('hidden');
+            coin.textContent = '?';
+          }
+        } else if (state.phase === 'revealed') {
+          coin.classList.add(coinType);
+          coin.textContent = coinType === 'gold' ? 'G' : 'S';
+          if (b === state.boxIdx && c === state.coinIdx) {
+            coin.classList.add('drawn');
+          }
+          if (b === state.boxIdx && c !== state.coinIdx) {
+            coin.classList.add('other-revealed');
+          }
+        }
+
+        box.appendChild(coin);
+      }
+
+      if (state.phase !== 'ready' && b === state.boxIdx) {
+        box.classList.add('selected');
+        box.classList.add('revealed');
+        if (state.phase === 'revealed') {
+          label.textContent = BOX_LABELS[state.mapping[b]];
+        }
+      }
+      if (state.phase !== 'ready' && state.phase !== 'drawn' && b !== state.boxIdx) {
+        if (state.phase === 'revealed') {
+          box.classList.add('revealed');
+          label.textContent = BOX_LABELS[state.mapping[b]];
+        } else {
+          box.classList.add('dimmed');
+        }
+      }
+      
+      if (state.phase === 'ready') {
+         label.textContent = '';
+      }
+
+      container.appendChild(box);
+    }
+  }
+
+  function updateScoreboard() {
+    setText('goldDraws', stats.goldDraws);
+    setText('otherGold', stats.otherGold);
+    if (stats.goldDraws > 0) {
+      var rate = stats.otherGold / stats.goldDraws;
+      setText('observedRate', pct(rate, 1));
+      updateNumberLine(rate);
+    } else {
+      setText('observedRate', '-');
+      $('nlIndicator').style.display = 'none';
+      $('nlFill').style.width = '0';
+    }
+  }
+
+  function updateNumberLine(rate) {
+    var pctVal = rate * 100;
+    var indicator = $('nlIndicator');
+    indicator.style.display = 'block';
+    indicator.style.left = pctVal + '%';
+    $('nlLabel').textContent = pct(rate, 1);
+    $('nlFill').style.width = pctVal + '%';
+  }
+
+  function resetGame() {
+    state.phase = 'ready';
+    state.boxIdx = -1;
+    state.coinIdx = -1;
+    state.otherCoin = null;
+    shuffle(state.mapping);
+
+    // Auto-draw a gold coin
+    var bx, ci, drawn;
+    do {
+      bx = randInt(0, 2);
+      ci = randInt(0, 1);
+      drawn = BOXES[state.mapping[bx]][ci];
+    } while (drawn === 'silver');
+
+    state.boxIdx = bx;
+    state.coinIdx = ci;
+    state.otherCoin = BOXES[state.mapping[bx]][1 - ci];
+    state.phase = 'guessing';
+
+    $('guessButtons').style.display = 'flex';
+    var skip = $('silverSkip');
+    if (skip) skip.style.display = 'none';
+    setText('status', 'A GOLD coin has been drawn! Is the other coin in this box Gold or Silver?');
+    renderBoxes();
+  }
+
+  function makeGuess(guess) {
+    if (state.phase !== 'guessing') return;
+
+    state.phase = 'revealed';
+    $('guessButtons').style.display = 'none';
+
+    stats.goldDraws++;
+    if (state.otherCoin === 'gold') stats.otherGold++;
+    saveState('bertrandStats', stats);
+
+    renderBoxes();
+    updateScoreboard();
+
+    var correct = (guess === state.otherCoin);
+    var otherLabel = state.otherCoin === 'gold' ? 'GOLD' : 'SILVER';
+    var boxLabel = BOX_LABELS[state.mapping[state.boxIdx]];
+
+    var againBtn = '<br><button class="btn-primary" onclick="resetGame()" style="margin-top:0.5rem">Play Again</button>';
+    var resText = correct ? 'Correct! ' : 'Wrong! ';
+    
+    $('status').innerHTML = resText + 'The other coin is ' + otherLabel + '. (Box was: ' + boxLabel + ')' + againBtn;
+  }
+
+  function autoRun() {
+    var btn = $('btnAuto');
+    btn.disabled = true;
+    btn.textContent = 'Running...';
+    var pbar = $('autoProgress');
+    pbar.style.display = 'block';
+    var pfill = $('autoProgressFill');
+
+    var N = 500;
+    var goldCount = 0;
+    var otherGoldCount = 0;
+
+    runSimulation(N, function() {
+      var bx = randInt(0, 2);
+      var ci = randInt(0, 1);
+      var drawn = BOXES[bx][ci];
+      if (drawn === 'silver') return null;
+      var other = BOXES[bx][1 - ci];
+      return other === 'gold' ? 1 : 0;
+    }, function(done, results) {
+      pfill.style.width = ((done / N) * 100) + '%';
+    }, function(results) {
+      results.forEach(function(r) {
+        if (r !== null) {
+          stats.goldDraws++;
+          if (r === 1) stats.otherGold++;
+        }
+      });
+      saveState('bertrandStats', stats);
+
+      btn.disabled = false;
+      btn.textContent = 'Auto-Run 500';
+      pbar.style.display = 'none';
+      pfill.style.width = '0';
+
+      updateScoreboard();
+
+      var goldInRun = 0, otherGoldInRun = 0;
+      results.forEach(function(r) {
+        if (r !== null) { goldInRun++; if (r === 1) otherGoldInRun++; }
+      });
+      
+      resetGame();
+      
+      setText('status', 'Auto-run complete! ' + goldInRun + ' gold draws, ' +
+        otherGoldInRun + ' had gold as other coin (' + pct(goldInRun > 0 ? otherGoldInRun / goldInRun : 0, 1) + ').<br>A new GOLD coin has been drawn! Is the other coin Gold or Silver?');
+    }, 100);
+  }
+
+  function resetAllStats() {
+    stats = { goldDraws: 0, otherGold: 0 };
+    saveState('bertrandStats', stats);
+    resetGame();
+    updateScoreboard();
+  }
+
+  resetGame();
+  updateScoreboard();
+</script>
+</body>
+</html>

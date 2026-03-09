@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monty Hall Game</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.25rem;
+      background: linear-gradient(135deg, #e94560, #f5a623);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: #888;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      max-width: 500px;
+      line-height: 1.4;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .controls label {
+      font-size: 0.95rem;
+      color: #aaa;
+    }
+
+    .controls input[type="number"] {
+      width: 70px;
+      padding: 0.4rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #444;
+      background: #16213e;
+      color: #eee;
+      font-size: 1rem;
+      text-align: center;
+    }
+
+    button {
+      padding: 0.5rem 1.2rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+    }
+
+    button:active { transform: scale(0.96); }
+
+    .btn-primary {
+      background: #e94560;
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: #d63350; }
+
+    .btn-secondary {
+      background: #16213e;
+      color: #ccc;
+      border: 1px solid #444;
+    }
+
+    .btn-secondary:hover { background: #1a2744; }
+
+    /* Status */
+    .status {
+      font-size: 1.1rem;
+      min-height: 1.6rem;
+      margin-bottom: 1rem;
+      text-align: center;
+      color: #f5a623;
+      font-weight: 600;
+    }
+
+    /* Doors grid */
+    .doors {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      max-width: 900px;
+      margin-bottom: 1.5rem;
+    }
+
+    .door {
+      width: 100px;
+      height: 140px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
+      user-select: none;
+      position: relative;
+      font-size: 2.5rem;
+    }
+
+    .door:hover:not(.opened):not(.disabled) {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 20px rgba(233, 69, 96, 0.3);
+    }
+
+    .door.closed {
+      background: linear-gradient(145deg, #16213e, #0f3460);
+      border: 2px solid #444;
+    }
+
+    .door .door-number {
+      font-size: 0.8rem;
+      color: #888;
+      position: absolute;
+      top: 6px;
+    }
+
+    .door .door-icon { font-size: 2.5rem; }
+
+    .door.closed .door-icon::after { content: "🚪"; }
+
+    .door.selected {
+      border: 2px solid #e94560;
+      box-shadow: 0 0 15px rgba(233, 69, 96, 0.4);
+      background: linear-gradient(145deg, #1e2a4a, #162050);
+    }
+
+    .door.opened {
+      cursor: default;
+      border: 2px solid #333;
+    }
+
+    .door.opened.goat {
+      background: linear-gradient(145deg, #2a1a1a, #1a1010);
+    }
+
+    .door.opened.car {
+      background: linear-gradient(145deg, #1a2a1a, #102a10);
+      border-color: #4caf50;
+      box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
+    }
+
+    .door.disabled:not(.opened) {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    /* Scoreboard */
+    .scoreboard {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .score-box {
+      background: #16213e;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 0.8rem 1.5rem;
+      text-align: center;
+      min-width: 120px;
+    }
+
+    .score-box .label {
+      font-size: 0.75rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .score-box .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-top: 0.2rem;
+    }
+
+    .score-box .value.win { color: #4caf50; }
+    .score-box .value.lose { color: #e94560; }
+    .score-box .value.neutral { color: #f5a623; }
+
+    /* Explanation */
+    .explanation {
+      max-width: 600px;
+      background: #16213e;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 1.2rem 1.5rem;
+      margin-top: 1rem;
+      line-height: 1.6;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+
+    .explanation summary {
+      cursor: pointer;
+      color: #ccc;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .explanation p { margin-top: 0.6rem; }
+
+    @media (max-width: 500px) {
+      .door { width: 80px; height: 110px; }
+      .door .door-icon { font-size: 2rem; }
+      h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>The Monty Hall Game</h1>
+<p class="subtitle">Pick a door. The host opens losing doors. Decide: stick or switch?</p>
+
+<div class="controls">
+  <label>Doors: <input type="number" id="doorCount" min="3" max="50" value="3"></label>
+  <button class="btn-primary" onclick="startGame()">New Game</button>
+  <button class="btn-secondary" onclick="resetStats()">Reset Stats</button>
+</div>
+
+<div class="status" id="status">Pick a door!</div>
+
+<div class="doors" id="doors"></div>
+
+<div class="scoreboard">
+  <div class="score-box">
+    <div class="label">Games</div>
+    <div class="value neutral" id="totalGames">0</div>
+  </div>
+  <div class="score-box">
+    <div class="label">Wins (stayed)</div>
+    <div class="value win" id="stayWins">0/0</div>
+  </div>
+  <div class="score-box">
+    <div class="label">Wins (switched)</div>
+    <div class="value win" id="switchWins">0/0</div>
+  </div>
+</div>
+
+<details class="explanation">
+  <summary>How does this work?</summary>
+  <p>
+    Behind one door is a car; the rest have goats. You pick a door, then the host
+    (who knows what's behind each door) opens <strong>N&minus;2</strong> other doors that all
+    have goats. You then choose: <strong>stay</strong> with your original pick or
+    <strong>switch</strong> to the one remaining unopened door.
+  </p>
+  <p>
+    With <strong>N</strong> doors, staying wins with probability <strong>1/N</strong>,
+    while switching wins with probability <strong>(N&minus;1)/N</strong>. The more doors,
+    the bigger the advantage of switching!
+  </p>
+</details>
+
+<script>
+  // Game state
+  let state = {
+    phase: 'pick',     // pick | switch | done
+    n: 3,
+    carDoor: 0,
+    picked: -1,
+    doors: [],         // 'closed' | 'opened-goat' | 'opened-car'
+  };
+
+  // Stats
+  let stats = { total: 0, stayWins: 0, stayTotal: 0, switchWins: 0, switchTotal: 0 };
+
+  function loadStats() {
+    try {
+      const s = JSON.parse(localStorage.getItem('montyStats'));
+      if (s) stats = s;
+    } catch {}
+  }
+
+  function saveStats() {
+    localStorage.setItem('montyStats', JSON.stringify(stats));
+  }
+
+  function renderStats() {
+    document.getElementById('totalGames').textContent = stats.total;
+    const stayPct = stats.stayTotal ? ((stats.stayWins / stats.stayTotal) * 100).toFixed(0) + '%' : '-';
+    const switchPct = stats.switchTotal ? ((stats.switchWins / stats.switchTotal) * 100).toFixed(0) + '%' : '-';
+    document.getElementById('stayWins').textContent = `${stats.stayWins}/${stats.stayTotal} (${stayPct})`;
+    document.getElementById('switchWins').textContent = `${stats.switchWins}/${stats.switchTotal} (${switchPct})`;
+  }
+
+  function resetStats() {
+    stats = { total: 0, stayWins: 0, stayTotal: 0, switchWins: 0, switchTotal: 0 };
+    saveStats();
+    renderStats();
+  }
+
+  function setStatus(msg) {
+    document.getElementById('status').textContent = msg;
+  }
+
+  function startGame() {
+    const input = document.getElementById('doorCount');
+    let n = parseInt(input.value, 10);
+    if (isNaN(n) || n < 3) n = 3;
+    if (n > 50) n = 50;
+    input.value = n;
+
+    state.n = n;
+    state.carDoor = Math.floor(Math.random() * n);
+    state.picked = -1;
+    state.phase = 'pick';
+    state.doors = Array(n).fill('closed');
+
+    setStatus('Step 1: Pick a door!');
+    renderDoors();
+  }
+
+  function renderDoors() {
+    const container = document.getElementById('doors');
+    container.innerHTML = '';
+
+    for (let i = 0; i < state.n; i++) {
+      const door = document.createElement('div');
+      door.className = 'door';
+
+      const num = document.createElement('span');
+      num.className = 'door-number';
+      num.textContent = i + 1;
+      door.appendChild(num);
+
+      const icon = document.createElement('span');
+      icon.className = 'door-icon';
+
+      if (state.doors[i] === 'closed') {
+        door.classList.add('closed');
+        icon.textContent = '🚪';
+        if (state.picked === i) door.classList.add('selected');
+
+        // Disable non-selectable doors in switch phase
+        if (state.phase === 'switch' && i !== state.picked && i !== remainingDoor()) {
+          door.classList.add('disabled');
+        }
+      } else if (state.doors[i] === 'opened-goat') {
+        door.classList.add('opened', 'goat');
+        icon.textContent = '🐐';
+      } else if (state.doors[i] === 'opened-car') {
+        door.classList.add('opened', 'car');
+        icon.textContent = '🚗';
+      }
+
+      door.appendChild(icon);
+      door.addEventListener('click', () => onDoorClick(i));
+      container.appendChild(door);
+    }
+  }
+
+  function remainingDoor() {
+    // The one closed door that isn't the player's pick
+    for (let i = 0; i < state.n; i++) {
+      if (state.doors[i] === 'closed' && i !== state.picked) return i;
+    }
+    return -1;
+  }
+
+  function onDoorClick(i) {
+    if (state.phase === 'pick') {
+      // Player picks a door
+      state.picked = i;
+      state.phase = 'switch';
+
+      // Host opens N-2 goat doors (not picked, not car)
+      const openable = [];
+      for (let j = 0; j < state.n; j++) {
+        if (j !== i && j !== state.carDoor) openable.push(j);
+      }
+      // Shuffle and open N-2 doors
+      shuffle(openable);
+      const toOpen = state.n - 2;
+      for (let k = 0; k < toOpen && k < openable.length; k++) {
+        state.doors[openable[k]] = 'opened-goat';
+      }
+
+      const other = remainingDoor();
+      setStatus(`Step 2: Stay with door ${i + 1}, or switch to door ${other + 1}?`);
+      renderDoors();
+
+    } else if (state.phase === 'switch') {
+      const other = remainingDoor();
+      if (i !== state.picked && i !== other) return; // clicked a disabled door
+
+      const switched = (i !== state.picked);
+      const won = (i === state.carDoor);
+
+      // Reveal all doors
+      for (let j = 0; j < state.n; j++) {
+        if (state.doors[j] === 'closed') {
+          state.doors[j] = j === state.carDoor ? 'opened-car' : 'opened-goat';
+        }
+      }
+      state.phase = 'done';
+
+      // Update stats
+      stats.total++;
+      if (switched) {
+        stats.switchTotal++;
+        if (won) stats.switchWins++;
+      } else {
+        stats.stayTotal++;
+        if (won) stats.stayWins++;
+      }
+      saveStats();
+      renderStats();
+
+      const action = switched ? 'switched' : 'stayed';
+      const result = won ? 'You won the car! 🎉' : 'You got a goat. 🐐';
+      setStatus(`You ${action}. ${result} Click "New Game" to play again.`);
+      renderDoors();
+    }
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+
+  // Init
+  loadStats();
+  renderStats();
+  startGame();
+</script>
+
+</body>
+</html>

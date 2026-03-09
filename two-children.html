@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Two Children Problem - Probability Paradoxes</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .family-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      max-width: 700px;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    .family-card {
+      width: 54px;
+      height: 62px;
+      border-radius: 8px;
+      border: 2px solid var(--border-dark);
+      background: var(--bg-card);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      gap: 2px;
+      transition: border-color 0.2s, box-shadow 0.2s, opacity 0.3s;
+      position: relative;
+    }
+    .family-card.eligible {
+      border-color: var(--accent-gold);
+      background: rgba(245, 166, 35, 0.08);
+    }
+    .family-card.eligible.both-boys {
+      border-color: var(--accent-green);
+      background: rgba(76, 175, 80, 0.12);
+      box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+    }
+    .family-card.ineligible {
+      opacity: 0.18;
+    }
+    .family-card.new-flash {
+      animation: cardFlash 0.35s ease-out;
+    }
+    @keyframes cardFlash {
+      0% { transform: scale(0.6); opacity: 0; }
+      60% { transform: scale(1.08); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .child-icon { line-height: 1; }
+    .card-tag-label {
+      font-size: 0.4rem;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-top: 1px;
+    }
+
+    .sample-space {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 0.75rem 0;
+    }
+    .ss-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 0.6rem 0.9rem;
+      border-radius: 8px;
+      border: 2px solid var(--border-dark);
+      background: var(--bg-card);
+      font-size: 1.1rem;
+      min-width: 70px;
+    }
+    .ss-cell.active {
+      border-color: var(--accent-gold);
+      background: rgba(245, 166, 35, 0.08);
+    }
+    .ss-cell.highlight {
+      border-color: var(--accent-green);
+      background: rgba(76, 175, 80, 0.12);
+      box-shadow: 0 0 10px rgba(76, 175, 80, 0.25);
+    }
+    .ss-cell.struck {
+      opacity: 0.25;
+      text-decoration: line-through;
+    }
+    .ss-label {
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .big-fraction {
+      text-align: center;
+      margin: 0.5rem 0;
+    }
+    .big-fraction .numerator {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--accent-green);
+      line-height: 1;
+    }
+    .big-fraction .fraction-bar {
+      width: 40px;
+      height: 3px;
+      background: var(--text-muted);
+      margin: 3px auto;
+      border-radius: 2px;
+    }
+    .big-fraction .denominator {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--accent-gold);
+      line-height: 1;
+    }
+    .big-fraction .fraction-note {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .convergence-bar {
+      width: 100%;
+      max-width: 420px;
+      position: relative;
+      height: 54px;
+      margin: 0.5rem auto;
+    }
+    .conv-track {
+      position: absolute;
+      top: 18px;
+      left: 0;
+      right: 0;
+      height: 8px;
+      background: var(--border-dark);
+      border-radius: 4px;
+    }
+    .conv-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--accent-red), var(--accent-gold));
+      transition: width 0.4s ease;
+    }
+    .conv-marker {
+      position: absolute;
+      top: 8px;
+      transform: translateX(-50%);
+      text-align: center;
+      font-size: 0.58rem;
+      color: var(--text-dim);
+    }
+    .conv-marker .conv-tick {
+      width: 1px;
+      height: 12px;
+      background: var(--text-dim);
+      margin: 2px auto 0;
+    }
+    .conv-indicator {
+      position: absolute;
+      top: 14px;
+      transform: translateX(-50%);
+      width: 16px;
+      height: 16px;
+      background: var(--accent-gold);
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 0 8px rgba(245, 166, 35, 0.6);
+      transition: left 0.4s ease;
+      z-index: 3;
+    }
+    .conv-indicator .conv-ind-label {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--accent-gold);
+      white-space: nowrap;
+    }
+    .conv-labels {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.58rem;
+      color: var(--text-dim);
+    }
+
+    .variant-toggle {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .variant-btn {
+      padding: 0.45rem 1.1rem;
+      border: 2px solid var(--border-mid);
+      border-radius: 6px;
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .variant-btn.active {
+      border-color: var(--accent-red);
+      background: rgba(233, 69, 96, 0.12);
+      color: var(--accent-red);
+    }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="back-link">&larr; Back to Games</a>
+<h1>The Two Children Problem</h1>
+<p class="subtitle">A family has two children. You learn one of them is a boy. What are the odds <em>both</em> are boys?</p>
+
+<div class="quiz-panel" id="quizPanel">
+  <h2>Before you play — what's your gut?</h2>
+  <p class="quiz-question">
+    A family has two children. You're told: <strong>"At least one of the children is a boy."</strong><br><br>
+    Given only this information, what is the probability that <em>both</em> children are boys?
+  </p>
+  <div class="quiz-options">
+    <button class="quiz-btn" onclick="tcQuiz('half')">1/2 — one child is already a boy, so the other is 50/50</button>
+    <button class="quiz-btn" onclick="tcQuiz('quarter')">1/4 — each child independently has a 50% chance of being a boy</button>
+    <button class="quiz-btn" onclick="tcQuiz('third')">1/3 — the information changes the sample space in a subtle way</button>
+    <button class="quiz-btn" onclick="tcQuiz('depends')">It depends — the answer changes based on how you learned that fact</button>
+  </div>
+  <div class="quiz-feedback" id="quizFeedback">
+    <span id="quizFeedbackText"></span><br>
+    <button class="quiz-continue" onclick="document.getElementById('quizPanel').style.display='none'; document.getElementById('gameSection').style.display='block';">Play and watch it converge &rarr;</button>
+  </div>
+</div>
+
+<div id="gameSection" style="display:none;">
+
+<div class="sample-space" id="sampleSpace">
+  <div class="ss-cell" id="ss-BB">
+    <span>👦👦</span>
+    <span class="ss-label">Boy + Boy</span>
+  </div>
+  <div class="ss-cell" id="ss-BG">
+    <span>👦👧</span>
+    <span class="ss-label">Boy + Girl</span>
+  </div>
+  <div class="ss-cell" id="ss-GB">
+    <span>👧👦</span>
+    <span class="ss-label">Girl + Boy</span>
+  </div>
+  <div class="ss-cell" id="ss-GG">
+    <span>👧👧</span>
+    <span class="ss-label">Girl + Girl</span>
+  </div>
+</div>
+
+<div class="variant-toggle">
+  <button class="variant-btn active" id="btnV1" onclick="setVariant('atleast')">Classic: "At least one is a boy"</button>
+  <button class="variant-btn" id="btnV2" onclick="setVariant('older')">Variant: "The <em>older</em> child is a boy"</button>
+</div>
+
+<div class="status" id="status">Simulating families…</div>
+
+<div class="family-grid" id="familyGrid"></div>
+
+<div style="display:flex; gap:2rem; justify-content:center; align-items:flex-start; flex-wrap:wrap; margin-bottom:0.5rem;">
+  <div class="big-fraction" id="fractionDisplay">
+    <div class="numerator" id="fracNum">0</div>
+    <div class="fraction-bar"></div>
+    <div class="denominator" id="fracDen">0</div>
+    <div class="fraction-note" id="fracNote">Both Boys / Eligible Families</div>
+  </div>
+  <div class="scoreboard" style="margin:0;">
+    <div class="score-box">
+      <div class="label">Families Seen</div>
+      <div class="value neutral" id="totalFamilies">0</div>
+    </div>
+    <div class="score-box">
+      <div class="label">Eligible (≥1 boy)</div>
+      <div class="value" style="color:var(--accent-gold)" id="eligibleCount">0</div>
+    </div>
+    <div class="score-box">
+      <div class="label">Both Boys</div>
+      <div class="value win" id="bothBoysCount">0</div>
+    </div>
+    <div class="score-box">
+      <div class="label">Observed Rate</div>
+      <div class="value" style="color:var(--accent-gold)" id="observedRate">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="convergence-bar" id="convBar">
+  <div class="conv-track">
+    <div class="conv-fill" id="convFill" style="width:0"></div>
+  </div>
+  <div class="conv-marker" style="left:33.3%;">
+    <span>1/3</span>
+    <div class="conv-tick"></div>
+  </div>
+  <div class="conv-marker" style="left:50%;">
+    <span>1/2</span>
+    <div class="conv-tick"></div>
+  </div>
+  <div class="conv-indicator" id="convIndicator" style="left:0; display:none;">
+    <span class="conv-ind-label" id="convLabel">—</span>
+  </div>
+  <div class="conv-labels">
+    <span>0%</span>
+    <span>100%</span>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn-primary" onclick="runBatch(50)">+50 Families</button>
+  <button class="btn-secondary" onclick="runBatch(500)">+500 Families</button>
+  <button class="btn-secondary btn-small" onclick="resetStats()">Reset</button>
+</div>
+
+<details class="explanation">
+  <summary>Why 1/3, not 1/2?</summary>
+  <p>When two children are born, there are <strong>four equally likely outcomes</strong>: Boy+Boy, Boy+Girl, Girl+Boy, Girl+Girl (each with 25% probability).</p>
+  <p>The clue "at least one is a boy" eliminates only one outcome — Girl+Girl. That leaves three equally likely cases: BB, BG, GB. Only <strong>one of those three</strong> is Boy+Boy, so the probability is <strong>1/3</strong>.</p>
+  <p>The trap: many people reason "one child is already a boy, so the other has a 50% chance." But the clue doesn't tell you <em>which</em> child is the boy — it tells you something about the <em>family</em>, which restricts the whole sample space.</p>
+  <p><strong>Variant:</strong> If instead you're told "the <em>older</em> child is a boy," that pins down one specific child. Now the sample space is just Boy+Boy and Boy+Girl — two cases — making the probability <strong>1/2</strong>. The wording genuinely changes the math.</p>
+</details>
+
+</div><!-- end gameSection -->
+
+<script src="shared.js"></script>
+<script>
+  var variant = 'atleast'; // 'atleast' or 'older'
+  var stats = loadState('twoChildrenStats', { total: 0, eligible: 0, bothBoys: 0 });
+  var statsOlder = loadState('twoChildrenStatsOlder', { total: 0, eligible: 0, bothBoys: 0 });
+
+  var MAX_CARDS = 80;
+  var families = []; // { c1: 'B'|'G', c2: 'B'|'G', eligible: bool, bothBoys: bool }
+
+  function currentStats() {
+    return variant === 'atleast' ? stats : statsOlder;
+  }
+
+  function isEligible(c1, c2) {
+    if (variant === 'atleast') return c1 === 'B' || c2 === 'B';
+    if (variant === 'older') return c1 === 'B'; // older child (c1) is a boy
+    return false;
+  }
+
+  function setVariant(v) {
+    variant = v;
+    $('btnV1').classList.toggle('active', v === 'atleast');
+    $('btnV2').classList.toggle('active', v === 'older');
+    families = [];
+    renderFamilyGrid();
+    updateScoreboard();
+    updateSampleSpace();
+    updateStatus();
+  }
+
+  function updateSampleSpace() {
+    var ss = { BB: false, BG: false, GB: false, GG: false };
+    if (variant === 'atleast') {
+      ss.BB = true; ss.BG = true; ss.GB = true; // GG struck
+    } else {
+      ss.BB = true; ss.BG = true; // GB and GG struck (older must be boy)
+    }
+    function applyCell(id, active) {
+      var cell = document.getElementById(id);
+      cell.className = 'ss-cell';
+      if (active) cell.classList.add('active');
+      else cell.classList.add('struck');
+    }
+    applyCell('ss-BB', ss.BB);
+    applyCell('ss-BG', ss.BG);
+    applyCell('ss-GB', ss.GB);
+    applyCell('ss-GG', ss.GG);
+    document.getElementById('ss-BB').classList.toggle('highlight', true);
+  }
+
+  function updateStatus() {
+    var s = currentStats();
+    if (s.eligible === 0) {
+      setText('status', variant === 'atleast'
+        ? 'Generating families with at least one boy…'
+        : 'Generating families where the older child is a boy…');
+    }
+  }
+
+  function generateFamily() {
+    var c1 = Math.random() < 0.5 ? 'B' : 'G';
+    var c2 = Math.random() < 0.5 ? 'B' : 'G';
+    var eligible = isEligible(c1, c2);
+    var both = (c1 === 'B' && c2 === 'B');
+    return { c1: c1, c2: c2, eligible: eligible, bothBoys: both };
+  }
+
+  function childIcon(g) { return g === 'B' ? '👦' : '👧'; }
+
+  function renderFamilyGrid() {
+    var grid = $('familyGrid');
+    grid.innerHTML = '';
+    var display = families.slice(-MAX_CARDS);
+    display.forEach(function(f, idx) {
+      var card = el('div', 'family-card');
+      if (f.eligible) {
+        card.classList.add('eligible');
+        if (f.bothBoys) card.classList.add('both-boys');
+      } else {
+        card.classList.add('ineligible');
+      }
+      if (idx === display.length - 1) card.classList.add('new-flash');
+      var icons = el('div', 'child-icon');
+      icons.textContent = childIcon(f.c1) + childIcon(f.c2);
+      var lbl = el('div', 'card-tag-label', f.eligible ? (f.bothBoys ? 'BB ✓' : 'eligible') : 'skip');
+      card.appendChild(icons);
+      card.appendChild(lbl);
+      grid.appendChild(card);
+    });
+  }
+
+  function updateScoreboard() {
+    var s = currentStats();
+    setText('totalFamilies', s.total);
+    setText('eligibleCount', s.eligible);
+    setText('bothBoysCount', s.bothBoys);
+    if (s.eligible > 0) {
+      var rate = s.bothBoys / s.eligible;
+      setText('observedRate', pct(rate, 1));
+      var ind = $('convIndicator');
+      ind.style.display = 'block';
+      ind.style.left = (rate * 100) + '%';
+      $('convLabel').textContent = pct(rate, 1);
+      $('convFill').style.width = (rate * 100) + '%';
+      setText('fracNum', s.bothBoys);
+      setText('fracDen', s.eligible);
+      setText('fracNote', 'Both Boys / Eligible Families ≈ ' + pct(rate, 1));
+    } else {
+      setText('observedRate', '—');
+      $('convIndicator').style.display = 'none';
+      $('convFill').style.width = '0';
+      setText('fracNum', '0');
+      setText('fracDen', '0');
+      setText('fracNote', 'Both Boys / Eligible Families');
+    }
+  }
+
+  function runBatch(n) {
+    var s = currentStats();
+    var added = [];
+    for (var i = 0; i < n; i++) {
+      var f = generateFamily();
+      s.total++;
+      if (f.eligible) {
+        s.eligible++;
+        if (f.bothBoys) s.bothBoys++;
+      }
+      added.push(f);
+    }
+    families = families.concat(added);
+    if (families.length > MAX_CARDS * 2) families = families.slice(-MAX_CARDS);
+    if (variant === 'atleast') saveState('twoChildrenStats', stats);
+    else saveState('twoChildrenStatsOlder', statsOlder);
+    renderFamilyGrid();
+    updateScoreboard();
+    if (s.eligible > 0) {
+      var rate = s.bothBoys / s.eligible;
+      var expected = variant === 'atleast' ? '1/3 (33.3%)' : '1/2 (50%)';
+      $('status').innerHTML = 'Observed: <strong>' + pct(rate, 1) + '</strong> &nbsp;|&nbsp; Expected: <strong>' + expected + '</strong> &nbsp;|&nbsp; ' + s.eligible + ' eligible families out of ' + s.total + ' total';
+    }
+  }
+
+  function resetStats() {
+    stats = { total: 0, eligible: 0, bothBoys: 0 };
+    statsOlder = { total: 0, eligible: 0, bothBoys: 0 };
+    saveState('twoChildrenStats', stats);
+    saveState('twoChildrenStatsOlder', statsOlder);
+    families = [];
+    renderFamilyGrid();
+    updateScoreboard();
+    updateStatus();
+  }
+
+  function tcQuiz(answer) {
+    var btns = document.querySelectorAll('.quiz-btn');
+    btns.forEach(function(b) { b.disabled = true; });
+    var fb = document.getElementById('quizFeedback');
+    var ft = document.getElementById('quizFeedbackText');
+    if (answer === 'third') {
+      btns[2].classList.add('correct');
+      ft.textContent = '✓ Correct! The answer is 1/3. The four equally likely outcomes are BB, BG, GB, GG. "At least one boy" rules out only GG — leaving 3 cases, just one of which is BB. Play to watch it converge!';
+      fb.className = 'quiz-feedback correct';
+    } else if (answer === 'half') {
+      btns[0].classList.add('incorrect'); btns[2].classList.add('reveal');
+      ft.textContent = '✗ This is the most common wrong answer! The clue doesn\'t pin down a specific child — it constrains the whole family. With GG ruled out, you have BB, BG, GB — three equally likely cases, and only one is BB. So it\'s 1/3.';
+      fb.className = 'quiz-feedback incorrect';
+    } else if (answer === 'quarter') {
+      btns[1].classList.add('incorrect'); btns[2].classList.add('reveal');
+      ft.textContent = '✗ 1/4 ignores the clue entirely — that would be the unconditional probability of BB before any information. Given we know at least one is a boy, GG is eliminated and the answer is 1/3.';
+      fb.className = 'quiz-feedback incorrect';
+    } else {
+      btns[3].classList.add('reveal');
+      ft.textContent = '◑ Surprisingly, you\'re not wrong! The classic "at least one" wording gives 1/3. But if instead you\'re told the older child is a boy, the answer becomes 1/2. Both variants are shown in the game — the wording really does change the math.';
+      fb.className = 'quiz-feedback incorrect';
+    }
+    fb.style.display = 'block';
+  }
+
+  // Init
+  updateSampleSpace();
+  updateStatus();
+  updateScoreboard();
+  runBatch(50);
+</script>
+</body>
+</html>

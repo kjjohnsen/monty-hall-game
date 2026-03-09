@@ -589,8 +589,8 @@
       
       resetGame();
       
-      setText('status', 'Auto-run complete! ' + goldInRun + ' gold draws, ' +
-        otherGoldInRun + ' had gold as other coin (' + pct(goldInRun > 0 ? otherGoldInRun / goldInRun : 0, 1) + ').<br>A new GOLD coin has been drawn! Is the other coin Gold or Silver?');
+      $('status').innerHTML = 'Auto-run complete! ' + goldInRun + ' gold draws, ' +
+        otherGoldInRun + ' had gold as other coin (' + pct(goldInRun > 0 ? otherGoldInRun / goldInRun : 0, 1) + ').<br>A new GOLD coin has been drawn! Is the other coin Gold or Silver?';
     }, 100);
   }
 

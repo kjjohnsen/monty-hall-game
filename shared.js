@@ -118,7 +118,8 @@ document.addEventListener('DOMContentLoaded', function() {
     {href: 'benfords-law.html', title: 'Benford\'s Law'},
     {href: 'secretary-problem.html', title: 'Secretary Problem'},
     {href: 'penneys-game.html', title: 'Penney\'s Game'},
-    {href: 'prisoners-riddle.html', title: '100 Prisoners Riddle'}
+    {href: 'prisoners-riddle.html', title: '100 Prisoners Riddle'},
+    {href: 'two-children.html', title: 'Two Children Problem'}
   ];
 
   var navContainer = document.createElement('div');

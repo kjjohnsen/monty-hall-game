@@ -34,7 +34,6 @@
       line-height: 1.4;
     }
 
-    /* Controls */
     .controls {
       display: flex;
       gap: 1rem;
@@ -50,7 +49,7 @@
     }
 
     .controls input[type="number"] {
-      width: 70px;
+      width: 80px;
       padding: 0.4rem 0.5rem;
       border-radius: 6px;
       border: 1px solid #444;
@@ -71,22 +70,11 @@
 
     button:active { transform: scale(0.96); }
 
-    .btn-primary {
-      background: #e94560;
-      color: #fff;
-    }
-
+    .btn-primary { background: #e94560; color: #fff; }
     .btn-primary:hover { background: #d63350; }
-
-    .btn-secondary {
-      background: #16213e;
-      color: #ccc;
-      border: 1px solid #444;
-    }
-
+    .btn-secondary { background: #16213e; color: #ccc; border: 1px solid #444; }
     .btn-secondary:hover { background: #1a2744; }
 
-    /* Status */
     .status {
       font-size: 1.1rem;
       min-height: 1.6rem;
@@ -96,56 +84,91 @@
       font-weight: 600;
     }
 
-    /* Doors grid */
     .doors {
       display: flex;
       flex-wrap: wrap;
-      gap: 1rem;
+      gap: var(--door-gap, 12px);
       justify-content: center;
-      max-width: 900px;
+      width: 100%;
+      max-width: 1200px;
       margin-bottom: 1.5rem;
     }
 
     .door {
-      width: 100px;
-      height: 140px;
-      border-radius: 10px;
+      width: var(--door-w, 100px);
+      height: var(--door-h, 140px);
+      border-radius: var(--door-radius, 10px);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
+      transition: transform 0.15s, box-shadow 0.15s, background 0.2s, border-color 0.2s;
       user-select: none;
       position: relative;
-      font-size: 2.5rem;
+      overflow: hidden;
     }
 
     .door:hover:not(.opened):not(.disabled) {
-      transform: translateY(-4px);
-      box-shadow: 0 6px 20px rgba(233, 69, 96, 0.3);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(233, 69, 96, 0.35);
     }
 
+    /* Closed door: CSS-drawn door shape */
     .door.closed {
-      background: linear-gradient(145deg, #16213e, #0f3460);
-      border: 2px solid #444;
+      background: linear-gradient(170deg, #2a4a7f, #16305a);
+      border: 2px solid #3a5a8a;
+    }
+
+    .door.closed .door-face {
+      width: 60%;
+      height: 65%;
+      border-radius: 3px;
+      background: linear-gradient(170deg, #1e3b66, #132a4d);
+      border: 1px solid #4a6a9a;
+      position: relative;
+    }
+
+    .door.closed .door-face::after {
+      content: '';
+      position: absolute;
+      right: 15%;
+      top: 50%;
+      transform: translateY(-50%);
+      width: var(--knob-size, 8px);
+      height: var(--knob-size, 8px);
+      border-radius: 50%;
+      background: #c9a84c;
+      box-shadow: 0 0 4px rgba(201, 168, 76, 0.5);
     }
 
     .door .door-number {
-      font-size: 0.8rem;
-      color: #888;
+      font-size: var(--num-size, 0.75rem);
+      color: #8ab;
       position: absolute;
-      top: 6px;
+      top: 3px;
+      font-weight: 600;
     }
 
-    .door .door-icon { font-size: 2.5rem; }
-
-    .door.closed .door-icon::after { content: "🚪"; }
+    .door .door-icon {
+      font-size: var(--icon-size, 2.2rem);
+      line-height: 1;
+    }
 
     .door.selected {
       border: 2px solid #e94560;
-      box-shadow: 0 0 15px rgba(233, 69, 96, 0.4);
-      background: linear-gradient(145deg, #1e2a4a, #162050);
+      box-shadow: 0 0 18px rgba(233, 69, 96, 0.5);
+      background: linear-gradient(170deg, #3a3a7f, #252060);
+    }
+
+    .door.selected .door-face {
+      background: linear-gradient(170deg, #2e2e6a, #1e1550);
+      border-color: #7a6aaa;
+    }
+
+    .door.selected .door-face::after {
+      background: #e94560;
+      box-shadow: 0 0 6px rgba(233, 69, 96, 0.7);
     }
 
     .door.opened {
@@ -154,18 +177,24 @@
     }
 
     .door.opened.goat {
-      background: linear-gradient(145deg, #2a1a1a, #1a1010);
+      background: linear-gradient(170deg, #2a2020, #1a1010);
+      border-color: #443030;
     }
 
     .door.opened.car {
-      background: linear-gradient(145deg, #1a2a1a, #102a10);
+      background: linear-gradient(170deg, #1a3a1a, #0d2a0d);
       border-color: #4caf50;
       box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
     }
 
     .door.disabled:not(.opened) {
-      opacity: 0.4;
+      opacity: 0.3;
       cursor: default;
+      pointer-events: none;
+    }
+
+    .door.done-clickable {
+      cursor: pointer;
     }
 
     /* Scoreboard */
@@ -203,7 +232,6 @@
     .score-box .value.lose { color: #e94560; }
     .score-box .value.neutral { color: #f5a623; }
 
-    /* Explanation */
     .explanation {
       max-width: 600px;
       background: #16213e;
@@ -226,8 +254,6 @@
     .explanation p { margin-top: 0.6rem; }
 
     @media (max-width: 500px) {
-      .door { width: 80px; height: 110px; }
-      .door .door-icon { font-size: 2rem; }
       h1 { font-size: 1.5rem; }
     }
   </style>
@@ -238,7 +264,7 @@
 <p class="subtitle">Pick a door. The host opens losing doors. Decide: stick or switch?</p>
 
 <div class="controls">
-  <label>Doors: <input type="number" id="doorCount" min="3" max="50" value="3"></label>
+  <label>Doors: <input type="number" id="doorCount" min="3" value="3"></label>
   <button class="btn-primary" onclick="startGame()">New Game</button>
   <button class="btn-secondary" onclick="resetStats()">Reset Stats</button>
 </div>
@@ -278,16 +304,14 @@
 </details>
 
 <script>
-  // Game state
   let state = {
-    phase: 'pick',     // pick | switch | done
+    phase: 'pick',   // pick | switch | done
     n: 3,
     carDoor: 0,
     picked: -1,
-    doors: [],         // 'closed' | 'opened-goat' | 'opened-car'
+    doors: [],       // 'closed' | 'opened-goat' | 'opened-car'
   };
 
-  // Stats
   let stats = { total: 0, stayWins: 0, stayTotal: 0, switchWins: 0, switchTotal: 0 };
 
   function loadStats() {
@@ -319,11 +343,43 @@
     document.getElementById('status').textContent = msg;
   }
 
+  function computeDoorSizes(n) {
+    // Scale door sizes based on count so any N fits on screen
+    const container = document.getElementById('doors');
+    const maxW = Math.min(window.innerWidth - 40, 1200);
+
+    if (n <= 5) {
+      return { w: 100, h: 140, gap: 12, radius: 10, icon: 2.2, num: 0.75, knob: 8 };
+    } else if (n <= 12) {
+      return { w: 85, h: 120, gap: 10, radius: 8, icon: 1.8, num: 0.7, knob: 7 };
+    } else if (n <= 30) {
+      return { w: 65, h: 90, gap: 8, radius: 7, icon: 1.4, num: 0.6, knob: 6 };
+    } else if (n <= 80) {
+      return { w: 48, h: 66, gap: 6, radius: 6, icon: 1.1, num: 0.5, knob: 5 };
+    } else if (n <= 200) {
+      return { w: 34, h: 46, gap: 4, radius: 5, icon: 0.85, num: 0.4, knob: 4 };
+    } else if (n <= 500) {
+      return { w: 24, h: 32, gap: 3, radius: 4, icon: 0.65, num: 0, knob: 3 };
+    } else {
+      return { w: 16, h: 20, gap: 2, radius: 3, icon: 0.45, num: 0, knob: 2 };
+    }
+  }
+
+  function applyDoorSizes(sizes) {
+    const container = document.getElementById('doors');
+    container.style.setProperty('--door-w', sizes.w + 'px');
+    container.style.setProperty('--door-h', sizes.h + 'px');
+    container.style.setProperty('--door-gap', sizes.gap + 'px');
+    container.style.setProperty('--door-radius', sizes.radius + 'px');
+    container.style.setProperty('--icon-size', sizes.icon + 'rem');
+    container.style.setProperty('--num-size', sizes.num + 'rem');
+    container.style.setProperty('--knob-size', sizes.knob + 'px');
+  }
+
   function startGame() {
     const input = document.getElementById('doorCount');
     let n = parseInt(input.value, 10);
     if (isNaN(n) || n < 3) n = 3;
-    if (n > 50) n = 50;
     input.value = n;
 
     state.n = n;
@@ -340,43 +396,65 @@
     const container = document.getElementById('doors');
     container.innerHTML = '';
 
+    const sizes = computeDoorSizes(state.n);
+    applyDoorSizes(sizes);
+    const showNumbers = sizes.num > 0;
+
     for (let i = 0; i < state.n; i++) {
       const door = document.createElement('div');
       door.className = 'door';
 
-      const num = document.createElement('span');
-      num.className = 'door-number';
-      num.textContent = i + 1;
-      door.appendChild(num);
-
-      const icon = document.createElement('span');
-      icon.className = 'door-icon';
+      if (showNumbers) {
+        const num = document.createElement('span');
+        num.className = 'door-number';
+        num.textContent = i + 1;
+        door.appendChild(num);
+      }
 
       if (state.doors[i] === 'closed') {
         door.classList.add('closed');
-        icon.textContent = '🚪';
         if (state.picked === i) door.classList.add('selected');
 
-        // Disable non-selectable doors in switch phase
+        // CSS-drawn door face (panel + knob)
+        const face = document.createElement('div');
+        face.className = 'door-face';
+        door.appendChild(face);
+
         if (state.phase === 'switch' && i !== state.picked && i !== remainingDoor()) {
           door.classList.add('disabled');
         }
+
+        if (state.phase === 'done') {
+          door.classList.add('done-clickable');
+        }
       } else if (state.doors[i] === 'opened-goat') {
         door.classList.add('opened', 'goat');
+        const icon = document.createElement('span');
+        icon.className = 'door-icon';
         icon.textContent = '🐐';
+        door.appendChild(icon);
+
+        if (state.phase === 'done') {
+          door.classList.add('done-clickable');
+        }
       } else if (state.doors[i] === 'opened-car') {
         door.classList.add('opened', 'car');
+        const icon = document.createElement('span');
+        icon.className = 'door-icon';
         icon.textContent = '🚗';
+        door.appendChild(icon);
+
+        if (state.phase === 'done') {
+          door.classList.add('done-clickable');
+        }
       }
 
-      door.appendChild(icon);
       door.addEventListener('click', () => onDoorClick(i));
       container.appendChild(door);
     }
   }
 
   function remainingDoor() {
-    // The one closed door that isn't the player's pick
     for (let i = 0; i < state.n; i++) {
       if (state.doors[i] === 'closed' && i !== state.picked) return i;
     }
@@ -384,17 +462,20 @@
   }
 
   function onDoorClick(i) {
+    if (state.phase === 'done') {
+      // Any click after the game ends starts a new game
+      startGame();
+      return;
+    }
+
     if (state.phase === 'pick') {
-      // Player picks a door
       state.picked = i;
       state.phase = 'switch';
 
-      // Host opens N-2 goat doors (not picked, not car)
       const openable = [];
       for (let j = 0; j < state.n; j++) {
         if (j !== i && j !== state.carDoor) openable.push(j);
       }
-      // Shuffle and open N-2 doors
       shuffle(openable);
       const toOpen = state.n - 2;
       for (let k = 0; k < toOpen && k < openable.length; k++) {
@@ -407,12 +488,11 @@
 
     } else if (state.phase === 'switch') {
       const other = remainingDoor();
-      if (i !== state.picked && i !== other) return; // clicked a disabled door
+      if (i !== state.picked && i !== other) return;
 
       const switched = (i !== state.picked);
       const won = (i === state.carDoor);
 
-      // Reveal all doors
       for (let j = 0; j < state.n; j++) {
         if (state.doors[j] === 'closed') {
           state.doors[j] = j === state.carDoor ? 'opened-car' : 'opened-goat';
@@ -420,7 +500,6 @@
       }
       state.phase = 'done';
 
-      // Update stats
       stats.total++;
       if (switched) {
         stats.switchTotal++;
@@ -434,7 +513,7 @@
 
       const action = switched ? 'switched' : 'stayed';
       const result = won ? 'You won the car! 🎉' : 'You got a goat. 🐐';
-      setStatus(`You ${action}. ${result} Click "New Game" to play again.`);
+      setStatus(`You ${action}. ${result}  Click anywhere to play again.`);
       renderDoors();
     }
   }
@@ -446,7 +525,6 @@
     }
   }
 
-  // Init
   loadStats();
   renderStats();
   startGame();
